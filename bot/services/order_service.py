@@ -26,6 +26,9 @@ class OrderService:
         return OrderDTO(**new_order)
 
     def save_order_data(self, order_id: int, data: OrderItemDTO) -> None:
+        import json
+        extra_data_json = json.dumps(data.extra_data)
+
         self.db.execute(
             """
             INSERT INTO order_items (order_id, birth_date, birth_time, birth_city, extra_data)
@@ -36,7 +39,7 @@ class OrderService:
                 data.birth_date,
                 data.birth_time,
                 data.birth_city,
-                data.extra_data,
+                extra_data_json,
             )
         )
 
