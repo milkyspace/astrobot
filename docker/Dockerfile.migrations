@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY requirements.txt .
 
+# Для миграций нам достаточно psycopg2 и dotenv
 RUN pip install --no-cache-dir psycopg2-binary python-dotenv
 
 COPY . /app

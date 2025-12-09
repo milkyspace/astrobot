@@ -1,6 +1,5 @@
 FROM python:3.11-slim
 
-# ОБЯЗАТЕЛЬНО!
 WORKDIR /app
 
 COPY requirements.txt .
@@ -9,5 +8,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app
 
-# ОБЯЗАТЕЛЬНО запускать из bot/ внутри /app
-CMD ["python", "bot/bot.py"]
+# ВАЖНО: запуск через модуль, чтобы пакет bot корректно резолвился
+CMD ["python", "-m", "bot.bot"]

@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS payments (
 
 -------------------------------------------------------
 
--- Триггер для автоматического обновления updated_at в orders
+-- Функция для обновления updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -58,15 +58,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER orders_update_timestamp
-BEFORE UPDATE ON orders
-FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
+-------------------------------------------------------
+
+-- Триггер для автоматического обновления updated_at в orders
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_trigger
+        WHERE tgname = 'orders_update_timestamp'
+    ) THEN
+        CREATE TRIGGER orders_update_timestamp
+        BEFORE UPDATE ON orders
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END
+$$;
 
 -------------------------------------------------------
 
 -- Триггер для автоматического обновления updated_at в payments
-CREATE TRIGGER payments_update_timestamp
-BEFORE UPDATE ON payments
-FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_trigger
+        WHERE tgname = 'payments_update_timestamp'
+    ) THEN
+        CREATE TRIGGER payments_update_timestamp
+        BEFORE UPDATE ON payments
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END
+$$;

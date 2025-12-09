@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
 
   bot:
@@ -12,7 +10,7 @@ services:
     depends_on:
       - postgres
       - redis
-    command: ["python", "bot/bot.py"]
+    command: ["python", "-m", "bot.bot"]
     volumes:
       - ./:/app
 
@@ -26,7 +24,7 @@ services:
     depends_on:
       - redis
       - postgres
-    command: ["python", "worker/worker.py"]
+    command: ["python", "-m", "worker.worker"]
     volumes:
       - ./:/app
 
@@ -40,6 +38,7 @@ services:
     depends_on:
       - redis
       - postgres
+    # rq-scheduler бинарник называется rqscheduler
     command: ["rqscheduler", "--host", "redis", "--port", "6379", "--db", "0"]
     volumes:
       - ./:/app
@@ -52,6 +51,8 @@ services:
     env_file: .env
     depends_on:
       - postgres
+    # миграции запускаем один раз, не перезапускаем контейнер
+    restart: "no"
     command: ["python", "database/init_db.py"]
     volumes:
       - ./:/app

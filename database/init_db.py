@@ -3,9 +3,11 @@ import psycopg2
 
 MIGRATIONS_DIR = "database/migrations"
 
+
 def apply_migrations():
     """
     Применяет все SQL миграции из папки database/migrations.
+    Скрипт идемпотентен, если сами SQL-миграции аккуратные (IF NOT EXISTS и т.п.).
     """
     dbname = os.getenv("POSTGRES_DB")
     user = os.getenv("POSTGRES_USER")
@@ -18,7 +20,7 @@ def apply_migrations():
         user=user,
         password=password,
         host=host,
-        port=port
+        port=port,
     )
 
     conn.autocommit = True
