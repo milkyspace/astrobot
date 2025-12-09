@@ -109,8 +109,9 @@ async def solar_confirm(message: Message, state: FSMContext):
     # чтобы следующий шаг (оплата) знал order_id и тип заказа
     await state.update_data(order_id=order.id, order_type="solar")
 
+    await state.clear()
+
     await message.answer(
-        "Отлично! Данные сохранены.\n"
-        "Теперь вы можете оплатить заказ.",
+        "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
         reply_markup=after_confirm_keyboard()
     )

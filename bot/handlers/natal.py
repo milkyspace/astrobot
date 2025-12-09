@@ -92,8 +92,9 @@ async def natal_confirm(message: Message, state: FSMContext):
     # кладём необходимые данные для оплаты
     await state.update_data(order_id=order.id, order_type="natal")
 
+    await state.clear()
+
     await message.answer(
-        "Данные успешно сохранены.\n"
-        "Теперь можно оплатить заказ.",
+        "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
         reply_markup=after_confirm_keyboard()
     )

@@ -89,8 +89,9 @@ async def karma_confirm(message: Message, state: FSMContext):
 
     await state.update_data(order_id=order.id, order_type="karma")
 
+    await state.clear()
+
     await message.answer(
-        "Отлично! Данные сохранены.\n"
-        "Теперь вы можете оплатить заказ.",
+        "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
         reply_markup=after_confirm_keyboard()
     )
