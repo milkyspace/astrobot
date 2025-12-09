@@ -1,31 +1,43 @@
 import asyncio
-import logging
 import os
+import logging
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
-from dotenv import load_dotenv
+from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.client.default import DefaultBotProperties
 
-# Routers
 from bot.handlers.start import router as start_router
 from bot.handlers.menu import router as menu_router
+from bot.handlers.natal import router as natal_router
+from bot.handlers.karma import router as karma_router
+from bot.handlers.solar import router as solar_router
 from bot.handlers.payment import router as payment_router
 
-load_dotenv()
 
 async def main():
-    logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+    logging.basicConfig(level=logging.INFO)
 
-    bot = Bot(token=os.getenv("BOT_TOKEN"))
-    dp = Dispatcher(storage=MemoryStorage())
+    # подключение к Redis для FSM
+    storage = RedisStorage.from_url(os.getenv("REDIS_URL"))
 
-    # Подключаем роутеры
+    bot = Bot(
+        token=os.getenv("BOT_TOKEN"),
+        default=DefaultBotProperties(parse_mode="HTML")
+    )
+
+    dp = Dispatcher(storage=storage)
+
+    # регистрируем хендлеры
     dp.include_router(start_router)
     dp.include_router(menu_router)
+    dp.include_router(natal_router)
+    dp.include_router(karma_router)
+    dp.include_router(solar_router)
     dp.include_router(payment_router)
 
     print("🤖 Bot started...")
 
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
