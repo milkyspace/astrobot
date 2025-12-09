@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+
+  bot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.bot
+    container_name: astrobot_bot
+    restart: always
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    command: ["python", "bot/bot.py"]
+    volumes:
+      - ./:/app
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: astrobot_worker
+    restart: always
+    env_file: .env
+    depends_on:
+      - redis
+      - postgres
+    command: ["python", "worker/worker.py"]
+    volumes:
+      - ./:/app
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: astrobot_scheduler
+    restart: always
+    env_file: .env
+    depends_on:
+      - redis
+      - postgres
+    command: ["rq-scheduler", "--host", "redis", "--port", "6379", "--db", "0"]
+    volumes:
+      - ./:/app
+
+  migrations:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.migrations
+    container_name: astrobot_migrations
+    env_file: .env
+    depends_on:
+      - postgres
+    command: ["python", "database/init_db.py"]
+    volumes:
+      - ./:/app
+
+  redis:
+    image: redis:7
+    container_name: astrobot_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:15
+    container_name: astrobot_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
