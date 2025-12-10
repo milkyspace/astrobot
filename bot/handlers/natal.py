@@ -3,7 +3,8 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 from bot.states.natal_states import NatalForm
-from bot.keyboards.confirmation import confirm_keyboard, after_confirm_keyboard
+from bot.keyboards.confirmation import confirm_keyboard
+from bot.keyboards.inline import confirm_inline, after_confirm_inline
 from bot.utils.validators import validate_date, validate_time
 from bot.models.dto import OrderItemDTO
 
@@ -54,35 +55,39 @@ async def natal_birth_city(message: Message, state: FSMContext):
     await message.answer(text, reply_markup=confirm_keyboard())
 
 
-@router.message(F.text == "✅ Всё верно")
+@router.message(NatalForm.confirm)
 async def natal_confirm(message: Message, state: FSMContext):
+    # если не inline кнопка → значит пользователь написал текст
+    await message.answer("Подтвердите данные, пожалуйста.", reply_markup=confirm_inline())
+
+@router.callback_query(F.data == "confirm_ok")
+async def natal_confirm_ok(callback, state: FSMContext):
     db = Db()
-    orders = OrderService(db)
     users = UserService(db)
+    orders = OrderService(db)
 
     user = users.get_or_create(
-        tg_id=message.from_user.id,
-        first_name=message.from_user.first_name,
-        last_name=message.from_user.last_name
+        tg_id=callback.from_user.id,
+        first_name=callback.from_user.first_name,
+        last_name=callback.from_user.last_name
     )
 
     data = await state.get_data()
 
-    # 1️⃣ создаём заказ
-    order_id = orders.create_order(user.id, "natal")
+    order = orders.create_order(user.id, "natal")
 
-    # 2️⃣ сохраняем введённые данные
     orders.save_order_data(
-        order_id=order_id,
-        birth_date=data["birth_date"],
-        birth_time=data["birth_time"],
-        birth_city=data["birth_city"],
-        extra_data={}
+        order.id,
+        OrderItemDTO(
+            birth_date=data["birth_date"],
+            birth_time=data["birth_time"],
+            birth_city=data["birth_city"]
+        )
     )
 
-    # 3️⃣ очищаем состояние
     await state.clear()
 
-    await message.answer(
-        "Данные успешно сохранены.\nТеперь можно оплатить заказ."
+    await callback.message.edit_text(
+        "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
+        reply_markup=after_confirm_inline()
     )

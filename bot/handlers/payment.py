@@ -11,37 +11,32 @@ from bot.config import settings
 router = Router()
 
 
-@router.message(F.text == "💳 Оплатить заказ")
-async def process_payment(message: Message, state: FSMContext):
+@router.callback_query(F.data == "pay_now")
+async def process_payment(callback, state: FSMContext):
     db = Db()
     users = UserService(db)
     orders = OrderService(db)
     yk = YooKassaService(db)
 
-    # текущий пользователь
     user = users.get_or_create(
-        tg_id=message.from_user.id,
-        first_name=message.from_user.first_name,
-        last_name=message.from_user.last_name
+        tg_id=callback.from_user.id,
+        first_name=callback.from_user.first_name,
+        last_name=callback.from_user.last_name
     )
 
     # ищем неоплаченный заказ
     row = orders.get_last_unpaid_order(user.id)
     if not row:
-        await message.answer("Ошибка: не найден заказ. Попробуйте снова.")
+        await callback.answer("Ошибка: заказ не найден", show_alert=True)
         return
 
     order_id = row["id"]
-
-    # определяем цену услуги
     order_type = orders.get_type(order_id)
-    amount = settings.PRICES[order_type]     # например {'natal':150, 'karma':200, ...}
-    description = f"Оплата услуги: {order_type}"
+    amount = settings.PRICES[order_type]
 
-    # создаём платёж
-    payment = yk.create_payment(order_id, amount, description)
+    payment = yk.create_payment(order_id, amount, f"Оплата услуги: {order_type}")
 
-    await message.answer(
+    await callback.message.edit_text(
         f"💳 Стоимость: {payment.amount['value']} ₽\n\n"
-        f"Для оплаты перейдите по ссылке:\n{payment.confirmation.confirmation_url}"
+        f"Перейдите к оплате:\n{payment.confirmation.confirmation_url}"
     )
