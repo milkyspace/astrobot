@@ -74,10 +74,12 @@ async def natal_confirm_ok(callback, state: FSMContext):
 
     data = await state.get_data()
 
-    order = orders.create_order(user.id, "natal")
+    # создаём заказ → возвращается int
+    order_id = orders.create_order(user.id, "natal")
 
+    # сохраняем данные
     orders.save_order_data(
-        order.id,
+        order_id,
         OrderItemDTO(
             birth_date=data["birth_date"],
             birth_time=data["birth_time"],
@@ -91,3 +93,5 @@ async def natal_confirm_ok(callback, state: FSMContext):
         "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
         reply_markup=after_confirm_inline()
     )
+
+    await callback.answer()
