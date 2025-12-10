@@ -31,7 +31,7 @@ async def process_payment(message: Message, state: FSMContext):
         await message.answer("Ошибка: не найден заказ. Попробуйте снова.")
         return
 
-    order_id = row[0]
+    order_id = row["id"]
 
     # определяем цену услуги
     order_type = orders.get_type(order_id)

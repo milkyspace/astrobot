@@ -1,45 +1,49 @@
-import os
 import psycopg2
-from psycopg2.extras import DictCursor
-from typing import Any, List
+import psycopg2.extras
+from bot.config import settings
 
 
 class Db:
     """
-    Класс для подключения к PostgreSQL и выполнения SQL запросов.
-    Принцип SRP: класс занимается только работой с БД.
+    Простая обёртка над psycopg2 для удобного доступа к БД.
+    Использует словарный курсор для получения данных.
     """
 
     def __init__(self):
-        self.conn = psycopg2.connect(
-            dbname=os.getenv("POSTGRES_DB"),
-            user=os.getenv("POSTGRES_USER"),
-            password=os.getenv("POSTGRES_PASSWORD"),
-            host=os.getenv("POSTGRES_HOST"),
-            port=os.getenv("POSTGRES_PORT"),
-            cursor_factory=DictCursor
-        )
+        self.conn = psycopg2.connect(settings.DATABASE_URL)
         self.conn.autocommit = True
 
-    def fetchone(self, query: str, params: tuple = ()) -> Any:
-        """Возвращает одну запись."""
-        with self.conn.cursor() as cur:
+    def fetch_one(self, query: str, params: tuple = ()):
+        """
+        Возвращает одну строку (dict) или None.
+        """
+        with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(query, params)
-            return cur.fetchone()
+            row = cur.fetchone()
+            return dict(row) if row else None
 
-    def fetchall(self, query: str, params: tuple = ()) -> List[Any]:
-        """Возвращает список записей."""
-        with self.conn.cursor() as cur:
+    def fetch_all(self, query: str, params: tuple = ()):
+        """
+        Возвращает список строк (list[dict])
+        """
+        with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(query, params)
-            return cur.fetchall()
+            rows = cur.fetchall()
+            return [dict(r) for r in rows]
 
-    def execute(self, query: str, params: tuple = ()) -> None:
-        """Выполняет SQL-запрос без возврата результата."""
+    def execute(self, query: str, params: tuple = ()):
+        """
+        Выполняет запрос без возврата значений.
+        """
         with self.conn.cursor() as cur:
             cur.execute(query, params)
 
-    def execute_returning(self, query: str, params: tuple = ()) -> Any:
-        """Выполняет SQL и возвращает RETURNING значение."""
-        with self.conn.cursor() as cur:
+    def execute_returning(self, query: str, params: tuple = ()):
+        """
+        Выполняет запрос и возвращает одну строку (dict).
+        Используется для INSERT ... RETURNING.
+        """
+        with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(query, params)
-            return cur.fetchone()
+            row = cur.fetchone()
+            return dict(row) if row else None
