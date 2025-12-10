@@ -55,10 +55,40 @@ async def natal_birth_city(message: Message, state: FSMContext):
     await message.answer(text, reply_markup=confirm_keyboard())
 
 
-@router.message(NatalForm.confirm)
+@router.message(F.text == "✅ Всё верно")
 async def natal_confirm(message: Message, state: FSMContext):
-    # если не inline кнопка → значит пользователь написал текст
-    await message.answer("Подтвердите данные, пожалуйста.", reply_markup=confirm_inline())
+    db = Db()
+    orders = OrderService(db)
+    users = UserService(db)
+
+    user = users.get_or_create(
+        tg_id=message.from_user.id,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name
+    )
+
+    data = await state.get_data()
+
+    # создаём заказ
+    order_id = orders.create_order(user.id, "natal")
+
+    # сохраняем данные о рождении через DTO
+    orders.save_order_data(
+        order_id,
+        OrderItemDTO(
+            birth_date=data["birth_date"],
+            birth_time=data["birth_time"],
+            birth_city=data["birth_city"],
+            extra_data={}
+        )
+    )
+
+    await state.clear()
+
+    await message.answer(
+        "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
+        reply_markup=after_confirm_keyboard()
+    )
 
 @router.callback_query(F.data == "confirm_ok")
 async def natal_confirm_ok(callback, state: FSMContext):
