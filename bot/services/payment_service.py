@@ -12,7 +12,7 @@ class PaymentService:
         self.db = db
 
     def create_payment(
-        self, order_id: int, yookassa_id: str, amount: int, url: str
+            self, order_id: int, yookassa_id: str, amount: int, url: str
     ) -> PaymentDTO:
         payment = self.db.execute_returning(
             """

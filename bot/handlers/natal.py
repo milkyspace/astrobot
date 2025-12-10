@@ -54,21 +54,11 @@ async def natal_birth_city(message: Message, state: FSMContext):
     await message.answer(text, reply_markup=confirm_keyboard())
 
 
-@router.message(NatalForm.confirm)
+@router.message(F.text == "✅ Всё верно")
 async def natal_confirm(message: Message, state: FSMContext):
-    if message.text == "✏ Изменить":
-        await state.set_state(NatalForm.birth_date)
-        await message.answer("Введите дату рождения заново:")
-        return
-
-    if message.text != "✅ Всё верно":
-        await message.answer("Пожалуйста, подтвердите данные.")
-        return
-
-    # Создаём заказ
     db = Db()
-    users = UserService(db)
     orders = OrderService(db)
+    users = UserService(db)
 
     user = users.get_or_create(
         tg_id=message.from_user.id,
@@ -76,25 +66,23 @@ async def natal_confirm(message: Message, state: FSMContext):
         last_name=message.from_user.last_name
     )
 
-    order = orders.create_order(user.id, "natal")
-
     data = await state.get_data()
 
+    # 1️⃣ создаём заказ
+    order_id = orders.create_order(user.id, "natal")
+
+    # 2️⃣ сохраняем введённые данные
     orders.save_order_data(
-        order.id,
-        OrderItemDTO(
-            birth_date=data["birth_date"],
-            birth_time=data["birth_time"],
-            birth_city=data["birth_city"]
-        )
+        order_id=order_id,
+        birth_date=data["birth_date"],
+        birth_time=data["birth_time"],
+        birth_city=data["birth_city"],
+        extra_data={}
     )
 
-    # кладём необходимые данные для оплаты
-    await state.update_data(order_id=order.id, order_type="natal")
-
+    # 3️⃣ очищаем состояние
     await state.clear()
 
     await message.answer(
-        "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
-        reply_markup=after_confirm_keyboard()
+        "Данные успешно сохранены.\nТеперь можно оплатить заказ."
     )

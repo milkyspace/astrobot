@@ -1,6 +1,7 @@
 from typing import Optional
 from .db import Db
 from bot.models.dto import OrderDTO, OrderItemDTO
+import json
 
 
 class OrderService:
@@ -14,21 +15,24 @@ class OrderService:
     def __init__(self, db: Db):
         self.db = db
 
-    def create_order(self, user_id: int, order_type: str) -> OrderDTO:
-        new_order = self.db.execute_returning(
+    def create_order(self, user_id: int, order_type: str) -> int:
+        """
+        Создаёт заказ и возвращает ID.
+        """
+        row = self.db.fetch_one(
             """
             INSERT INTO orders (user_id, type, status)
             VALUES (%s, %s, 'pending')
-            RETURNING id, user_id, type, status, result
+            RETURNING id
             """,
             (user_id, order_type)
         )
-        return OrderDTO(**new_order)
+        return row[0]
 
-    def save_order_data(self, order_id: int, data: OrderItemDTO) -> None:
-        import json
-        extra_data_json = json.dumps(data.extra_data)
-
+    def save_order_data(self, order_id: int, birth_date: str, birth_time: str, birth_city: str, extra_data: dict):
+        """
+        Сохраняет данные клиента в order_items.
+        """
         self.db.execute(
             """
             INSERT INTO order_items (order_id, birth_date, birth_time, birth_city, extra_data)
@@ -36,10 +40,10 @@ class OrderService:
             """,
             (
                 order_id,
-                data.birth_date,
-                data.birth_time,
-                data.birth_city,
-                extra_data_json,
+                birth_date,
+                birth_time,
+                birth_city,
+                json.dumps(extra_data)
             )
         )
 
@@ -54,3 +58,24 @@ class OrderService:
             "UPDATE orders SET result=%s WHERE id=%s",
             (text, order_id)
         )
+
+    def get_last_unpaid_order(self, user_id: int):
+        """
+        Возвращает ID последнего неоплаченного заказа.
+        """
+        return self.db.fetch_one(
+            """
+            SELECT id FROM orders
+            WHERE user_id = %s AND status = 'pending'
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (user_id,)
+        )
+
+    def get_type(self, order_id: int):
+        row = self.db.fetch_one(
+            "SELECT type FROM orders WHERE id = %s",
+            (order_id,)
+        )
+        return row[0]

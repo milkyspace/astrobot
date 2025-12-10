@@ -3,78 +3,45 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 from bot.services.db import Db
+from bot.services.user_service import UserService
 from bot.services.order_service import OrderService
-from bot.services.payment_service import PaymentService
 from bot.services.yookassa_service import YooKassaService
-
-from redis import Redis
-from rq import Queue
-from worker.tasks import wait_for_payment
-
-import os
+from bot.config import settings
 
 router = Router()
 
-PRICE_MAP = {
-    "natal": int(os.getenv("PRICE_NATAL")),
-    "karma": int(os.getenv("PRICE_KARMA")),
-    "solar": int(os.getenv("PRICE_SOLAR")),
-}
-
-NAME_MAP = {
-    "natal": "Натальная карта",
-    "karma": "Кармические задачи",
-    "solar": "Соляр на 2026 год",
-}
-
 
 @router.message(F.text == "💳 Оплатить заказ")
-async def proceed_payment(message: Message, state: FSMContext):
-    """
-    Хэндлер запуска оплаты.
-    Достаём из FSM ID заказа и его тип, создаём платёж, отправляем ссылку пользователю.
-    После этого создаём RQ-задачу для отслеживания оплаты.
-    """
+async def process_payment(message: Message, state: FSMContext):
+    db = Db()
+    users = UserService(db)
+    orders = OrderService(db)
+    yk = YooKassaService(db)
 
-    data = await state.get_data()
-    order_id = data.get("order_id")
-    order_type = data.get("order_type")
+    # текущий пользователь
+    user = users.get_or_create(
+        tg_id=message.from_user.id,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name
+    )
 
-    if not order_id or not order_type:
+    # ищем неоплаченный заказ
+    row = orders.get_last_unpaid_order(user.id)
+    if not row:
         await message.answer("Ошибка: не найден заказ. Попробуйте снова.")
-        await state.clear()
         return
 
-    amount = PRICE_MAP[order_type]
-    description = NAME_MAP[order_type]
+    order_id = row[0]
 
-    db = Db()
-    order_service = OrderService(db)
-    payment_service = PaymentService(db)
-    yk = YooKassaService()
+    # определяем цену услуги
+    order_type = orders.get_type(order_id)
+    amount = settings.PRICES[order_type]     # например {'natal':150, 'karma':200, ...}
+    description = f"Оплата услуги: {order_type}"
 
-    # Создаём платёж в YooKassa
-    payment_id, url = yk.create_payment(amount, description)
-
-    # Сохраняем платёж в БД
-    payment_service.create_payment(order_id, payment_id, amount, url)
+    # создаём платёж
+    payment = yk.create_payment(order_id, amount, description)
 
     await message.answer(
-        f"💳 Стоимость услуги: {amount} ₽\n"
-        f"Для оплаты перейдите по ссылке:\n{url}\n\n"
-        "После оплаты я автоматически начну расчёт ✨"
+        f"💳 Стоимость: {payment.amount['value']} ₽\n\n"
+        f"Для оплаты перейдите по ссылке:\n{payment.confirmation.confirmation_url}"
     )
-
-    # Создаём RQ-задачу для отслеживания оплаты
-    redis_conn = Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
-    queue = Queue("payments", connection=redis_conn)
-
-    queue.enqueue(
-        wait_for_payment,
-        payment_id,
-        order_id,
-        message.chat.id,
-        job_timeout=600  # 10 минут
-    )
-
-    await state.clear()
