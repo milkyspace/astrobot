@@ -5,8 +5,7 @@ from bot.config import settings
 
 class Db:
     """
-    Простая обёртка над psycopg2 для удобного доступа к БД.
-    Использует словарный курсор для получения данных.
+    Обёртка над psycopg2 для удобного доступа к БД.
     """
 
     def __init__(self):
@@ -15,16 +14,16 @@ class Db:
 
     def fetch_one(self, query: str, params: tuple = ()):
         """
-        Возвращает одну строку (dict) или None.
+        Выполняет запрос и возвращает одну строку в виде dict или None.
         """
         with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(query, params)
-            row = cur.fetch_one()
+            row = cur.fetchone()  # ← ИСПРАВЛЕНО
             return dict(row) if row else None
 
     def fetch_all(self, query: str, params: tuple = ()):
         """
-        Возвращает список строк (list[dict])
+        Возвращает список строк в виде list[dict]
         """
         with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(query, params)
@@ -40,10 +39,9 @@ class Db:
 
     def execute_returning(self, query: str, params: tuple = ()):
         """
-        Выполняет запрос и возвращает одну строку (dict).
-        Используется для INSERT ... RETURNING.
+        Выполняет INSERT ... RETURNING и возвращает dict одной строки
         """
         with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(query, params)
-            row = cur.fetch_one()
+            row = cur.fetchone()
             return dict(row) if row else None
