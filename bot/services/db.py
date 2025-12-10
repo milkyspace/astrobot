@@ -19,7 +19,7 @@ class Db:
         """
         with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(query, params)
-            row = cur.fetchone()
+            row = cur.fetch_one()
             return dict(row) if row else None
 
     def fetch_all(self, query: str, params: tuple = ()):
@@ -45,5 +45,5 @@ class Db:
         """
         with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(query, params)
-            row = cur.fetchone()
+            row = cur.fetch_one()
             return dict(row) if row else None

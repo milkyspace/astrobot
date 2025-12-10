@@ -32,7 +32,7 @@ class PaymentService:
         )
 
     def get_payment(self, yookassa_id: str) -> Optional[PaymentDTO]:
-        payment = self.db.fetchone(
+        payment = self.db.fetch_one(
             "SELECT * FROM payments WHERE yookassa_id=%s",
             (yookassa_id,)
         )

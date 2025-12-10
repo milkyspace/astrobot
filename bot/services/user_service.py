@@ -13,7 +13,7 @@ class UserService:
         self.db = db
 
     def get_or_create(self, tg_id: int, first_name: str, last_name: str) -> UserDTO:
-        user = self.db.fetchone(
+        user = self.db.fetch_one(
             "SELECT * FROM users WHERE tg_id=%s",
             (tg_id,)
         )
