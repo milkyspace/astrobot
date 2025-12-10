@@ -27,7 +27,7 @@ class OrderService:
             """,
             (user_id, order_type)
         )
-        return row[0]
+        return row["id"]
 
     def save_order_data(self, order_id: int, birth_date: str, birth_time: str, birth_city: str, extra_data: dict):
         """
@@ -78,4 +78,4 @@ class OrderService:
             "SELECT type FROM orders WHERE id = %s",
             (order_id,)
         )
-        return row[0]
+        return row["id"]
