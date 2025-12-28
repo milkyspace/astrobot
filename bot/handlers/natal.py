@@ -107,5 +107,5 @@ async def natal_confirm(message: Message, state: FSMContext):
 
     await message.answer(
         "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
-        reply_markup=kb.as_markup(resize_keyboard=True)
+        reply_markup=kb.as_markup()
     )
