@@ -28,10 +28,9 @@ class PaymentFlow:
             last_name=tg_user.last_name
         )
 
-        logger.info("User: %s", user)
         order = self.orders.get_last_unpaid_order(user.tg_id)
         if not order:
-            raise OrderNotFoundError("Unpaid order not found")
+            raise OrderNotFoundError("Unpaid order not found", user)
 
         order_type = self.orders.get_type(order["id"])
         if order_type not in settings.PRICES:
