@@ -1,17 +1,14 @@
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 
 
-def main_menu() -> ReplyKeyboardMarkup:
+def main_menu() -> InlineKeyboardMarkup:
     """
     Главное меню — пользователь выбирает тип услуги.
     """
-    kb = ReplyKeyboardBuilder()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔮 Натальная карта", callback_data="action:type:natal")],
+        [InlineKeyboardButton(text="✨ Кармические задачи", callback_data="action:type:karma")],
+        [InlineKeyboardButton(text="🌞 Соляр на 2026 год", callback_data="action:type:solar")],
+    ])
 
-    kb.button(text="🔮 Натальная карта")
-    kb.button(text="✨ Кармические задачи")
-    kb.button(text="🌞 Соляр на 2026 год")
-
-    kb.adjust(1)
-
-    return kb.as_markup(resize_keyboard=True)
+    return kb
