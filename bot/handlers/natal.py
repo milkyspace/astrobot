@@ -82,7 +82,7 @@ async def natal_confirm(message: Message, state: FSMContext):
     data = await state.get_data()
 
     # 1️⃣ создаём заказ
-    order_id = orders.create_order(user.id, "natal")
+    order_id = orders.create_order(user.tg_id, "natal")
 
     # 2️⃣ сохраняем данные через DTO
     orders.save_order_data(
