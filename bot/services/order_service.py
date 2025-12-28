@@ -29,10 +29,15 @@ class OrderService:
         )
         return row["id"]
 
-    def save_order_data(self, order_id: int, birth_date: str, birth_time: str, birth_city: str, extra_data: dict):
+    def save_order_data(self, order_id, order_item_dto: OrderItemDTO):
         """
         Сохраняет данные клиента в order_items.
         """
+        birth_date = order_item_dto.birth_date
+        birth_time = order_item_dto.birth_time
+        birth_city = order_item_dto.birth_city
+        extra_data = order_item_dto.extra_data
+
         self.db.execute(
             """
             INSERT INTO order_items (order_id, birth_date, birth_time, birth_city, extra_data)

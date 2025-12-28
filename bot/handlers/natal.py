@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from bot.states.natal_states import NatalForm
 from bot.keyboards.confirmation import confirm_keyboard
 from bot.keyboards.inline import confirm_inline, after_confirm_inline
+from bot.keyboards.confirmation import confirm_keyboard, after_confirm_keyboard
 from bot.utils.validators import validate_date, validate_time
 from bot.models.dto import OrderItemDTO
 
@@ -101,41 +102,3 @@ async def natal_confirm(message: Message, state: FSMContext):
         "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
         reply_markup=after_confirm_keyboard()
     )
-
-
-@router.callback_query(F.data == "confirm_ok")
-async def natal_confirm_ok(callback, state: FSMContext):
-    print('confirm_ok')
-    db = Db()
-    users = UserService(db)
-    orders = OrderService(db)
-
-    user = users.get_or_create(
-        tg_id=callback.from_user.id,
-        first_name=callback.from_user.first_name,
-        last_name=callback.from_user.last_name
-    )
-
-    data = await state.get_data()
-
-    # создаём заказ → возвращается int
-    order_id = orders.create_order(user.id, "natal")
-
-    # сохраняем данные
-    orders.save_order_data(
-        order_id,
-        OrderItemDTO(
-            birth_date=data["birth_date"],
-            birth_time=data["birth_time"],
-            birth_city=data["birth_city"]
-        )
-    )
-
-    await state.clear()
-
-    await callback.message.edit_text(
-        "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
-        reply_markup=after_confirm_inline()
-    )
-
-    await callback.answer()
