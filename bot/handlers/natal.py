@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.states.natal_states import NatalForm
 from bot.keyboards.confirmation import confirm_keyboard, after_confirm_keyboard
@@ -101,7 +101,7 @@ async def natal_confirm(message: Message, state: FSMContext):
     payment_flow = PaymentFlow(db)
     url = payment_flow.create_payment_for_user(user)
 
-    kb = ReplyKeyboardBuilder()
+    kb = InlineKeyboardBuilder()
     kb.button(text="💳 Оплатить заказ", url=url)
     kb.adjust(1)
 
