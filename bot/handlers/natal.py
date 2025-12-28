@@ -157,10 +157,23 @@ async def natal_confirm(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
 
+    from bot.config import settings
+    price = settings.PRICES["natal"]
+
+    order_text = (
+        "🧾 Заказ сформирован\n\n"
+        "🔮 Услуга: Натальная карта\n\n"
+        f"📅 Дата рождения: {data['birth_date']}\n"
+        f"⏰ Время рождения: {data['birth_time']}\n"
+        f"📍 Город рождения: {data['birth_city']}\n\n"
+        f"💳 Стоимость: {price} ₽\n\n"
+        "Нажмите кнопку ниже, чтобы перейти к оплате."
+    )
+
     await callback.message.bot.edit_message_text(
         chat_id=callback.message.chat.id,
         message_id=ui_message_id,
-        text="Данные сохранены.\nТеперь можно оплатить заказ:",
+        text=order_text,
         reply_markup=natal_pay_keyboard(url)
     )
 
