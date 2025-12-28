@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Таблица заказов (покупка товара: натал, карма, соляр)
 CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    tg_id INTEGER NOT NULL REFERENCES users(tg_id) ON DELETE CASCADE,
     type VARCHAR(32) NOT NULL,               -- 'natal', 'karma', 'solar'
     status VARCHAR(32) NOT NULL DEFAULT 'pending',  -- pending / paid / processing / done / failed
     result TEXT,                              -- итоговый текст от ChatGPT
