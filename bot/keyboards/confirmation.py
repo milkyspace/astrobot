@@ -1,6 +1,5 @@
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.types import ReplyKeyboardMarkup
-from uvloop.dns import callback
 
 
 def confirm_keyboard() -> ReplyKeyboardMarkup:
