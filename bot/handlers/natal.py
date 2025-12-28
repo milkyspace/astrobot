@@ -55,12 +55,23 @@ async def natal_birth_city(message: Message, state: FSMContext):
     await message.answer(text, reply_markup=confirm_keyboard())
 
 
-@router.message(F.text == "✅ Всё верно")
+@router.message(NatalForm.confirm)
 async def natal_confirm(message: Message, state: FSMContext):
+    print('NatalForm.confirm')
+    if message.text == "✏ Изменить":
+        await state.set_state(NatalForm.birth_date)
+        await message.answer("Введите дату рождения заново:")
+        return
+
+    if message.text != "✅ Всё верно":
+        await message.answer("Пожалуйста, подтвердите данные.")
+        return
+
     db = Db()
     orders = OrderService(db)
     users = UserService(db)
 
+    # текущий пользователь
     user = users.get_or_create(
         tg_id=message.from_user.id,
         first_name=message.from_user.first_name,
@@ -69,10 +80,10 @@ async def natal_confirm(message: Message, state: FSMContext):
 
     data = await state.get_data()
 
-    # создаём заказ
+    # 1️⃣ создаём заказ
     order_id = orders.create_order(user.id, "natal")
 
-    # сохраняем данные о рождении через DTO
+    # 2️⃣ сохраняем данные через DTO
     orders.save_order_data(
         order_id,
         OrderItemDTO(
@@ -83,6 +94,7 @@ async def natal_confirm(message: Message, state: FSMContext):
         )
     )
 
+    # 3️⃣ очищаем FSM
     await state.clear()
 
     await message.answer(
@@ -90,8 +102,10 @@ async def natal_confirm(message: Message, state: FSMContext):
         reply_markup=after_confirm_keyboard()
     )
 
+
 @router.callback_query(F.data == "confirm_ok")
 async def natal_confirm_ok(callback, state: FSMContext):
+    print('confirm_ok')
     db = Db()
     users = UserService(db)
     orders = OrderService(db)
