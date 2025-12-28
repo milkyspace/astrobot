@@ -1,15 +1,17 @@
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 from bot.states.natal_states import NatalForm
 from bot.keyboards.confirmation import confirm_keyboard, after_confirm_keyboard
 from bot.utils.validators import validate_date, validate_time
-from bot.models.dto import OrderItemDTO
+from bot.models.dto import OrderItemDTO, UserDTO
 
 from bot.services.db import Db
 from bot.services.user_service import UserService
 from bot.services.order_service import OrderService
+from bot.services.payment_flow import PaymentFlow
 
 router = Router()
 
@@ -96,7 +98,14 @@ async def natal_confirm(message: Message, state: FSMContext):
     # 3️⃣ очищаем FSM
     await state.clear()
 
+    payment_flow = PaymentFlow(db)
+    url = payment_flow.create_payment_for_user(user)
+
+    kb = ReplyKeyboardBuilder()
+    kb.button(text="💳 Оплатить заказ", url=url)
+    kb.adjust(1)
+
     await message.answer(
         "Данные успешно сохранены.\nТеперь можно оплатить заказ.",
-        reply_markup=after_confirm_keyboard()
+        reply_markup=kb.as_markup(resize_keyboard=True)
     )

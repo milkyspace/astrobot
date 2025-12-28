@@ -45,7 +45,8 @@ class YooKassaService:
 
         return payment_id, confirmation_url
 
-    def get_payment_status(self, payment_id: str) -> str:
+    @staticmethod
+    def get_payment_status(payment_id: str) -> str:
         """
         Возвращает статус платежа по его ID.
         """
