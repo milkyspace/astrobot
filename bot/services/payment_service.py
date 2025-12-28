@@ -1,5 +1,6 @@
 from typing import Optional
-from .db import Db
+from bot.services.db import Db
+
 from bot.models.dto import PaymentDTO
 
 

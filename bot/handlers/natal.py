@@ -3,8 +3,6 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 from bot.states.natal_states import NatalForm
-from bot.keyboards.confirmation import confirm_keyboard
-from bot.keyboards.inline import confirm_inline, after_confirm_inline
 from bot.keyboards.confirmation import confirm_keyboard, after_confirm_keyboard
 from bot.utils.validators import validate_date, validate_time
 from bot.models.dto import OrderItemDTO

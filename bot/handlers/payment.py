@@ -3,6 +3,7 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 from bot.services.db import Db
+from bot.services.payment_service import PaymentService
 from bot.services.user_service import UserService
 from bot.services.order_service import OrderService
 from bot.services.yookassa_service import YooKassaService
@@ -15,8 +16,9 @@ router = Router()
 async def process_payment(callback, state: FSMContext):
     db = Db()
     users = UserService(db)
+    payments = PaymentService(db)
     orders = OrderService(db)
-    yk = YooKassaService(db)
+    yk = YooKassaService()
 
     user = users.get_or_create(
         tg_id=callback.from_user.id,
@@ -34,9 +36,9 @@ async def process_payment(callback, state: FSMContext):
     order_type = orders.get_type(order_id)
     amount = settings.PRICES[order_type]
 
-    payment = yk.create_payment(order_id, amount, f"Оплата услуги: {order_type}")
+    payment_id, confirmation_url = yk.create_payment(amount, f"Оплата услуги: {order_type}")
+    payments.create_payment(order_id, payment_id, amount, confirmation_url)
 
     await callback.message.edit_text(
-        f"💳 Стоимость: {payment.amount['value']} ₽\n\n"
-        f"Перейдите к оплате:\n{payment.confirmation.confirmation_url}"
+        f"Перейдите к оплате:\n{confirmation_url}"
     )
