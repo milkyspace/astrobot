@@ -101,6 +101,12 @@ async def natal_confirm(message: Message, state: FSMContext):
     payment_flow = PaymentFlow(db)
     url = payment_flow.create_payment_for_user(user)
 
+    if not url:
+        await message.answer(
+            "Не удалось создать платёж. Попробуйте позже или напишите в поддержку."
+        )
+        return
+
     kb = InlineKeyboardBuilder()
     kb.button(text="💳 Оплатить заказ", url=url)
     kb.adjust(1)
