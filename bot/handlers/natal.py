@@ -13,6 +13,7 @@ from bot.services.user_service import UserService
 from bot.services.order_service import OrderService
 from bot.services.payment_flow import PaymentFlow
 from bot.services.exceptions import PaymentError
+from bot.keyboards.common import back_to_main_menu
 
 router = Router()
 
@@ -22,7 +23,8 @@ async def natal_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(NatalForm.birth_date)
 
     msg = await callback.message.edit_text(
-        "Введите дату рождения (ДД.ММ.ГГГГ):"
+        "Введите дату рождения (ДД.ММ.ГГГГ):",
+        reply_markup=back_to_main_menu()
     )
 
     await state.update_data(ui_message_id=msg.message_id)
@@ -43,7 +45,8 @@ async def natal_birth_date(message: Message, state: FSMContext):
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
         message_id=ui_message_id,
-        text="Введите время рождения (ЧЧ:ММ):"
+        text="Введите время рождения (ЧЧ:ММ):",
+        reply_markup=back_to_main_menu()
     )
 
     await message.delete()
@@ -63,7 +66,8 @@ async def natal_birth_time(message: Message, state: FSMContext):
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
         message_id=ui_message_id,
-        text="Введите город рождения:"
+        text="Введите город рождения:",
+        reply_markup=back_to_main_menu()
     )
 
     await message.delete()
@@ -89,7 +93,7 @@ async def natal_birth_city(message: Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=ui_message_id,
         text=text,
-        reply_markup=natal_confirm_keyboard()
+        reply_markup=natal_confirm_keyboard(),
     )
 
     await message.delete()
@@ -104,7 +108,8 @@ async def natal_edit(callback: CallbackQuery, state: FSMContext):
     await callback.message.bot.edit_message_text(
         chat_id=callback.message.chat.id,
         message_id=ui_message_id,
-        text="Введите дату рождения заново (ДД.ММ.ГГГГ):"
+        text="Введите дату рождения заново (ДД.ММ.ГГГГ):",
+        reply_markup=back_to_main_menu()
     )
 
     await callback.answer()
@@ -146,7 +151,8 @@ async def natal_confirm(callback: CallbackQuery, state: FSMContext):
         await callback.message.bot.edit_message_text(
             chat_id=callback.message.chat.id,
             message_id=ui_message_id,
-            text="Не удалось создать платёж. Попробуйте позже."
+            text="Не удалось создать платёж. Попробуйте позже.",
+            reply_markup=back_to_main_menu()
         )
         await callback.answer()
         return

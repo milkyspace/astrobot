@@ -6,6 +6,7 @@ def natal_confirm_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="✅ Всё верно", callback_data="natal:confirm:yes")],
             [InlineKeyboardButton(text="✏ Изменить", callback_data="natal:confirm:edit")],
+            [InlineKeyboardButton(text="⬅️ В главное меню", callback_data="action:main_menu")],
         ]
     )
 
@@ -14,5 +15,6 @@ def natal_pay_keyboard(url: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="💳 Оплатить заказ", url=url)],
+            [InlineKeyboardButton(text="⬅️ В главное меню", callback_data="action:main_menu")],
         ]
     )
