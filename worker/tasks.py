@@ -41,7 +41,7 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
         orders.update_ui(order_id, "❌ Ошибка платежа.")
         return
 
-    payment = payments.get(payment_id)
+    payment = payments.get_payment(payment_id)
     if not payment:
         orders.update_status(order_id, "failed")
         orders.update_ui(order_id, "❌ Платёж не найден.")
