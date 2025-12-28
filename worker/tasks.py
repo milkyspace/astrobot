@@ -266,7 +266,7 @@ def full_calculation(order_id: int, chat_id: int):
         bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
-            text=(msg)
+            text=msg
         )
         time.sleep(random.randint(min_interval, max_interval))
 
