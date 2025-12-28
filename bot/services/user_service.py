@@ -19,7 +19,7 @@ class UserService:
         )
 
         if user:
-            return UserDTO(id=user[0], first_name=first_name, last_name=last_name, tg_id=tg_id)
+            return UserDTO(id=user.get('id'), first_name=user.get('first_name'), last_name=user.get('last_name'), tg_id=user.get('tg_id'))
 
         new_user = self.db.execute_returning(
             """
@@ -30,4 +30,4 @@ class UserService:
             (tg_id, first_name, last_name)
         )
 
-        return UserDTO(id=new_user[0], first_name=first_name, last_name=last_name, tg_id=tg_id)
+        return UserDTO(id=new_user.get('id'), first_name=first_name, last_name=last_name, tg_id=tg_id)
