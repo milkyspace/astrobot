@@ -21,36 +21,61 @@ async def natal_start(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.set_state(NatalForm.birth_date)
 
-    await callback.message.edit_text(
+    msg = await callback.message.edit_text(
         "Введите дату рождения (ДД.ММ.ГГГГ):"
     )
+
+    await state.update_data(ui_message_id=msg.message_id)
     await callback.answer()
 
 @router.message(NatalForm.birth_date)
 async def natal_birth_date(message: Message, state: FSMContext):
     if not validate_date(message.text):
-        await message.answer("Введите дату в формате ДД.ММ.ГГГГ")
+        await message.delete()
         return
+
+    data = await state.get_data()
+    ui_message_id = data["ui_message_id"]
 
     await state.update_data(birth_date=message.text)
     await state.set_state(NatalForm.birth_time)
 
-    await message.answer("Введите время рождения (ЧЧ:ММ):")
+    await message.bot.edit_message_text(
+        chat_id=message.chat.id,
+        message_id=ui_message_id,
+        text="Введите время рождения (ЧЧ:ММ):"
+    )
+
+    await message.delete()
 
 @router.message(NatalForm.birth_time)
 async def natal_birth_time(message: Message, state: FSMContext):
     if not validate_time(message.text):
-        await message.answer("Введите время в формате ЧЧ:ММ")
+        await message.delete()
         return
+
+    data = await state.get_data()
+    ui_message_id = data["ui_message_id"]
 
     await state.update_data(birth_time=message.text)
     await state.set_state(NatalForm.birth_city)
 
-    await message.answer("Введите город рождения:")
+    await message.bot.edit_message_text(
+        chat_id=message.chat.id,
+        message_id=ui_message_id,
+        text="Введите город рождения:"
+    )
+
+    await message.delete()
 
 @router.message(NatalForm.birth_city)
 async def natal_birth_city(message: Message, state: FSMContext):
+    data = await state.get_data()
+    ui_message_id = data["ui_message_id"]
+
     await state.update_data(birth_city=message.text)
+    await state.set_state(NatalForm.confirm)
+
     data = await state.get_data()
 
     text = (
@@ -60,24 +85,35 @@ async def natal_birth_city(message: Message, state: FSMContext):
         f"📍 {data['birth_city']}"
     )
 
-    await state.set_state(NatalForm.confirm)
-
-    await message.answer(
-        text,
+    await message.bot.edit_message_text(
+        chat_id=message.chat.id,
+        message_id=ui_message_id,
+        text=text,
         reply_markup=natal_confirm_keyboard()
     )
 
+    await message.delete()
+
 @router.callback_query(F.data == "natal:confirm:edit")
 async def natal_edit(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    ui_message_id = data["ui_message_id"]
+
     await state.set_state(NatalForm.birth_date)
 
-    await callback.message.edit_text(
-        "Введите дату рождения заново (ДД.ММ.ГГГГ):"
+    await callback.message.bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=ui_message_id,
+        text="Введите дату рождения заново (ДД.ММ.ГГГГ):"
     )
+
     await callback.answer()
 
 @router.callback_query(F.data == "natal:confirm:yes")
 async def natal_confirm(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    ui_message_id = data["ui_message_id"]
+
     db = Db()
     users = UserService(db)
     orders = OrderService(db)
@@ -87,8 +123,6 @@ async def natal_confirm(callback: CallbackQuery, state: FSMContext):
         first_name=callback.from_user.first_name,
         last_name=callback.from_user.last_name
     )
-
-    data = await state.get_data()
 
     order_id = orders.create_order(user.id, "natal")
 
@@ -109,14 +143,19 @@ async def natal_confirm(callback: CallbackQuery, state: FSMContext):
     try:
         url = payment_flow.create_payment_for_user(user)
     except PaymentError:
-        await callback.message.edit_text(
-            "Не удалось создать платёж. Попробуйте позже."
+        await callback.message.bot.edit_message_text(
+            chat_id=callback.message.chat.id,
+            message_id=ui_message_id,
+            text="Не удалось создать платёж. Попробуйте позже."
         )
         await callback.answer()
         return
 
-    await callback.message.edit_text(
-        "Данные сохранены.\nТеперь можно оплатить заказ:",
+    await callback.message.bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=ui_message_id,
+        text="Данные сохранены.\nТеперь можно оплатить заказ:",
         reply_markup=natal_pay_keyboard(url)
     )
+
     await callback.answer()
