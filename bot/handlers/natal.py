@@ -129,7 +129,7 @@ async def natal_confirm(callback: CallbackQuery, state: FSMContext):
         last_name=callback.from_user.last_name
     )
 
-    order_id = orders.create_order(user.id, "natal")
+    order_id = orders.create_order(user.tg_id, "natal")
 
     orders.save_order_data(
         order_id,

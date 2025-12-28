@@ -91,7 +91,7 @@ async def solar_confirm(message: Message, state: FSMContext):
         last_name=message.from_user.last_name
     )
 
-    order = orders.create_order(user.id, "solar")
+    order = orders.create_order(user.tg_id, "solar")
 
     data = await state.get_data()
 

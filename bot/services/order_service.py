@@ -27,7 +27,7 @@ class OrderService:
             """,
             (tg_id, order_type)
         )
-        return row["id"]
+        return row.get('id')
 
     def save_order_data(self, order_id, order_item_dto: OrderItemDTO):
         """

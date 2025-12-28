@@ -74,7 +74,7 @@ async def karma_confirm(message: Message, state: FSMContext):
         last_name=message.from_user.last_name
     )
 
-    order = orders.create_order(user.id, "karma")
+    order = orders.create_order(user.tg_id, "karma")
 
     data = await state.get_data()
 
