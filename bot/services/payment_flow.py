@@ -23,7 +23,7 @@ class PaymentFlow:
 
     def create_payment_for_user(self, tg_user: UserDTO) -> str:
         user = self.users.get_or_create(
-            tg_id=tg_user.id,
+            tg_id=tg_user.tg_id,
             first_name=tg_user.first_name,
             last_name=tg_user.last_name
         )
