@@ -1,8 +1,12 @@
 import os
 import time
 import random
+from typing import Optional
 
 from aiogram import Bot
+
+from bot.config import settings
+from rq import Queue
 from redis import Redis
 
 from bot.services.db import Db
@@ -23,47 +27,94 @@ bot = Bot(token=os.getenv("BOT_TOKEN"))
 # 1) WAIT FOR PAYMENT (polling YooKassa)
 # =====================================================================
 
-def wait_for_payment(payment_id: str, order_id: int, chat_id: int):
+
+def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     """
-    Постоянно проверяет статус платежа.
-    Когда статус меняется на 'succeeded' — запускаем обработку заказа.
+    Ожидает подтверждение платежа.
+    Для админов — платёж считается подтверждённым сразу.
+    После подтверждения запускает full_calculation через RQ.
     """
 
     db = Db()
-    payments = PaymentService(db)
     orders = OrderService(db)
+    payments = PaymentService(db)
     yk = YooKassaService()
 
-    bot_sync = bot  # просто чтобы читалось
+    redis_conn = Redis(
+        host=os.getenv("REDIS_HOST"),
+        port=int(os.getenv("REDIS_PORT", 6379)),
+    )
 
-    bot_sync.send_message(chat_id, "⏳ Ожидаю подтверждение оплаты...")
+    calc_queue = Queue("calculations", connection=redis_conn)
+
+    # ======================================================
+    # 🛡️ ADMIN MODE — сразу считаем платёж успешным
+    # ======================================================
+    if chat_id in settings.ADMIN_TG_IDS:
+        orders.update_status(order_id, "processing")
+
+        bot.send_message(
+            chat_id,
+            "🛡️ Админ-режим: платёж подтверждён автоматически.\n"
+            "Начинаю расчёт ✨"
+        )
+
+        orders.update_status(order_id, "processing")
+
+        calc_queue.enqueue(
+            full_calculation,
+            order_id,
+            chat_id,
+        )
+
+        return
+
+    # ======================================================
+    # 👤 Обычный пользователь — ждём YooKassa
+    # ======================================================
+    if not payment_id:
+        orders.update_status(order_id, "failed")
+        bot.send_message(chat_id, "❌ Ошибка платежа. Попробуйте позже.")
+        return
+
+    bot.send_message(chat_id, "⏳ Ожидаю подтверждение оплаты...")
 
     while True:
-        status = yk.get_payment_status(payment_id)
+        try:
+            status = yk.get_payment_status(payment_id)
+        except Exception:
+            time.sleep(5)
+            continue
 
-        # обновляем статус в БД
         payments.update_status(payment_id, status)
 
         if status == "succeeded":
-            bot_sync.send_message(chat_id, "💰 Оплата получена! Начинаю расчёт ✨")
-
             orders.update_status(order_id, "processing")
 
-            # запускаем следующую задачу → полный расчёт
-            from rq import Queue
-            redis_conn = Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
-            queue = Queue("calculations", connection=redis_conn)
+            bot.send_message(
+                chat_id,
+                "💰 Оплата получена!\n"
+                "Начинаю астрологический расчёт ✨"
+            )
 
-            queue.enqueue(full_calculation, order_id, chat_id)
-
+            calc_queue.enqueue(
+                full_calculation,
+                order_id,
+                chat_id,
+            )
             break
 
-        elif status in ("canceled", "refunded"):
-            bot_sync.send_message(chat_id, "❌ Платёж отменён.")
+        if status in ("canceled", "refunded"):
             orders.update_status(order_id, "failed")
+
+            bot.send_message(
+                chat_id,
+                "❌ Платёж отменён или возвращён.\n"
+                "Если это ошибка — попробуйте ещё раз."
+            )
             break
 
-        time.sleep(5)  # раз в 5 сек опрашиваем YooKassa
+        time.sleep(5)
 
 
 # =====================================================================
@@ -84,10 +135,10 @@ def full_calculation(order_id: int, chat_id: int):
     gpt = GPTService()
 
     # достаём данные заказа
-    order_row = db.fetchone("SELECT * FROM orders WHERE id=%s", (order_id,))
+    order_row = db.fetch_one("SELECT * FROM orders WHERE id=%s", (order_id,))
     order = OrderDTO(**order_row)
 
-    item = db.fetchone("SELECT * FROM order_items WHERE order_id=%s", (order_id,))
+    item = db.fetch_one("SELECT * FROM order_items WHERE order_id=%s", (order_id,))
 
     birth_date = item["birth_date"]
     birth_time = item["birth_time"]
@@ -98,6 +149,7 @@ def full_calculation(order_id: int, chat_id: int):
     # ======================================================
     # Выбираем промпт
     # ======================================================
+    prompt = ""
     if order.type == "natal":
         prompt = (
             "Представь, что ты — профессиональный астролог мирового уровня...\n"

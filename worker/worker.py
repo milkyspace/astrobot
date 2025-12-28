@@ -1,4 +1,5 @@
-from rq import Worker, Queue, Connection
+from rq import Worker, Queue
+from rq.connections import RedisConnection
 from redis import Redis
 import os
 
@@ -10,6 +11,6 @@ redis_conn = Redis(
 )
 
 if __name__ == "__main__":
-    with Connection(redis_conn):
+    with RedisConnection(redis_conn):
         worker = Worker(list(map(Queue, listen)))
         worker.work()

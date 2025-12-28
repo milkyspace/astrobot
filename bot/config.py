@@ -22,6 +22,10 @@ class Settings:
         "solar": int(os.getenv("PRICE_SOLAR", "150")),
     }
 
+    ADMIN_TG_IDS = {
+        int(x) for x in os.getenv("ADMIN_TG_IDS", "").split(",") if x
+    }
+
     # YooKassa
     YK_SHOP_ID: str = os.getenv("YOOKASSA_SHOP_ID")
     YK_SECRET_KEY: str = os.getenv("YOOKASSA_SECRET_KEY")
