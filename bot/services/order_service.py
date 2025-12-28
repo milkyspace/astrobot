@@ -83,4 +83,4 @@ class OrderService:
             "SELECT type FROM orders WHERE id = %s",
             (order_id,)
         )
-        return row["id"]
+        return row.get("id")
