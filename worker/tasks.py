@@ -15,6 +15,7 @@ from bot.services.payment_service import PaymentService
 from bot.services.gpt_service import GPTService
 from bot.services.progress_messages import PROGRESS_MESSAGES
 from bot.models.dto import OrderDTO
+from bot.utils.async_helper import send_message
 
 from bot.services.yookassa_service import YooKassaService
 
@@ -56,10 +57,14 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     if chat_id in settings.ADMIN_TG_IDS:
         orders.update_status(order_id, "processing")
 
-        bot.send_message(
+        send_message(
             chat_id,
-            "🛡️ Админ-режим: платёж подтверждён автоматически.\n"
-            "Начинаю расчёт ✨"
+            "🛡️ Админ-режим: платёж подтверждён автоматически."
+        )
+        send_message(
+            chat_id,
+            "💰 Оплата получена!\n"
+            "Начинаю астрологический расчёт ✨"
         )
 
         calculations_queue.enqueue(
@@ -74,7 +79,7 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     # ======================================================
     if not payment_id:
         orders.update_status(order_id, "failed")
-        bot.send_message(chat_id, "❌ Ошибка платежа. Попробуйте позже.")
+        send_message(chat_id, "❌ Ошибка платежа. Попробуйте позже.")
         return
 
     # ======================================================
@@ -84,7 +89,7 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
 
     if payment is None:
         orders.update_status(order_id, "failed")
-        bot.send_message(chat_id, "❌ Платёж не найден.")
+        send_message(chat_id, "❌ Платёж не найден.")
         return
 
     created_at = payment["created_at"]
@@ -94,7 +99,7 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     if datetime.utcnow() - created_at > timedelta(seconds=MAX_WAIT_SECONDS):
         orders.update_status(order_id, "expired")
 
-        bot.send_message(
+        send_message(
             chat_id,
             "⌛ Время ожидания оплаты истекло.\n"
             "Пожалуйста, оформите заказ заново."
@@ -124,7 +129,7 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     if status == "succeeded":
         orders.update_status(order_id, "processing")
 
-        bot.send_message(
+        send_message(
             chat_id,
             "💰 Оплата получена!\n"
             "Начинаю астрологический расчёт ✨"
@@ -143,7 +148,7 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     if status in ("canceled", "refunded"):
         orders.update_status(order_id, "failed")
 
-        bot.send_message(
+        send_message(
             chat_id,
             "❌ Платёж отменён или возвращён.\n"
             "Если это ошибка — попробуйте ещё раз."
@@ -219,7 +224,7 @@ def full_calculation(order_id: int, chat_id: int):
     # ======================================================
     # 1. Отправляем прогресс-сообщения
     # ======================================================
-    bot.send_message(chat_id, "✨ Начинаю глубокий астрологический анализ...")
+    send_message(chat_id, "✨ Начинаю глубокий астрологический анализ...")
 
     min_interval = int(os.getenv("PROGRESS_MIN_INTERVAL", 20))
     max_interval = int(os.getenv("PROGRESS_MAX_INTERVAL", 40))
@@ -228,7 +233,7 @@ def full_calculation(order_id: int, chat_id: int):
 
     for i in range(total_progress_messages):
         msg = random.choice(PROGRESS_MESSAGES)
-        bot.send_message(chat_id, msg)
+        send_message(chat_id, msg)
         time.sleep(random.randint(min_interval, max_interval))
 
     # ======================================================
@@ -243,7 +248,7 @@ def full_calculation(order_id: int, chat_id: int):
     # ======================================================
     # 3. GPT расчёт
     # ======================================================
-    bot.send_message(chat_id, "🔮 Завершаю анализ...")
+    send_message(chat_id, "🔮 Завершаю анализ...")
 
     result_text = gpt.generate(prompt)
 
@@ -254,5 +259,5 @@ def full_calculation(order_id: int, chat_id: int):
     # ======================================================
     # 4. Отправка результата
     # ======================================================
-    bot.send_message(chat_id, "✨ Ваш расчёт готов! Отправляю:")
-    bot.send_message(chat_id, result_text)
+    send_message(chat_id, "✨ Ваш расчёт готов! Отправляю:")
+    send_message(chat_id, result_text)
