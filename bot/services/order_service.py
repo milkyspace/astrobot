@@ -84,3 +84,16 @@ class OrderService:
             (order_id,)
         )
         return row.get("type")
+
+    def get_ui_message_id(self, order_id: int):
+        row = self.db.fetch_one(
+            "SELECT ui_message_id FROM orders WHERE id = %s",
+            (order_id,)
+        )
+        return row.get("ui_message_id")
+
+    def set_ui_message_id(self, order_id: int, message_id: int):
+        self.db.execute(
+            "UPDATE orders SET ui_message_id=%s WHERE id=%s",
+            (message_id, order_id)
+        )

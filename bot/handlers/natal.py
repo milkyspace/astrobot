@@ -177,4 +177,6 @@ async def natal_confirm(callback: CallbackQuery, state: FSMContext):
         reply_markup=natal_pay_keyboard(url)
     )
 
+    orders.set_ui_message_id(order_id, msg.message_id)
+
     await callback.answer()
