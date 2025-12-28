@@ -1,14 +1,14 @@
-import os
 import time
 import random
-from typing import Optional
-
 from aiogram import Bot
+from datetime import datetime, timedelta
+from typing import Optional
+import os
 
-from bot.config import settings
 from rq import Queue
 from redis import Redis
 
+from bot.config import settings
 from bot.services.db import Db
 from bot.services.order_service import OrderService
 from bot.services.payment_service import PaymentService
@@ -17,7 +17,6 @@ from bot.services.progress_messages import PROGRESS_MESSAGES
 from bot.models.dto import OrderDTO
 
 from bot.services.yookassa_service import YooKassaService
-
 
 # 📌 Telegram Bot для worker-а
 bot = Bot(token=os.getenv("BOT_TOKEN"))
@@ -30,10 +29,13 @@ bot = Bot(token=os.getenv("BOT_TOKEN"))
 
 def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     """
-    Ожидает подтверждение платежа.
-    Для админов — платёж считается подтверждённым сразу.
-    После подтверждения запускает full_calculation через RQ.
+    Проверяет статус платежа ОДИН раз.
+    Если платёж не завершён — переenqueue себя позже.
+    Никаких while / sleep.
     """
+
+    CHECK_DELAY_SECONDS = int(os.getenv("PAYMENT_CHECK_DELAY", 30))  # раз в 30 сек
+    MAX_WAIT_SECONDS = int(os.getenv("PAYMENT_TIMEOUT", 60 * 60))  # 30 минут
 
     db = Db()
     orders = OrderService(db)
@@ -45,13 +47,12 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
         port=int(os.getenv("REDIS_PORT", 6379)),
     )
 
-    calc_queue = Queue("calculations", connection=redis_conn)
+    payments_queue = Queue("payments", connection=redis_conn)
+    calculations_queue = Queue("calculations", connection=redis_conn)
 
     # ======================================================
-    # 🛡️ ADMIN MODE — сразу считаем платёж успешным
+    # 🛡️ ADMIN MODE — сразу в расчёт
     # ======================================================
-    print(chat_id)
-    print(settings.ADMIN_TG_IDS)
     if chat_id in settings.ADMIN_TG_IDS:
         orders.update_status(order_id, "processing")
 
@@ -61,62 +62,104 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
             "Начинаю расчёт ✨"
         )
 
-        orders.update_status(order_id, "processing")
-
-        calc_queue.enqueue(
+        calculations_queue.enqueue(
             full_calculation,
             order_id,
             chat_id,
         )
-
         return
 
     # ======================================================
-    # 👤 Обычный пользователь — ждём YooKassa
+    # 👤 Нет payment_id — ошибка
     # ======================================================
     if not payment_id:
         orders.update_status(order_id, "failed")
         bot.send_message(chat_id, "❌ Ошибка платежа. Попробуйте позже.")
         return
 
-    bot.send_message(chat_id, "⏳ Ожидаю подтверждение оплаты...")
+    # ======================================================
+    # ⏳ Проверка таймаута ожидания
+    # ======================================================
+    payment = payments.get(payment_id)
 
-    while True:
-        try:
-            status = yk.get_payment_status(payment_id)
-        except Exception:
-            time.sleep(5)
-            continue
+    if payment is None:
+        orders.update_status(order_id, "failed")
+        bot.send_message(chat_id, "❌ Платёж не найден.")
+        return
 
-        payments.update_status(payment_id, status)
+    created_at = payment["created_at"]
+    if isinstance(created_at, str):
+        created_at = datetime.fromisoformat(created_at)
 
-        if status == "succeeded":
-            orders.update_status(order_id, "processing")
+    if datetime.utcnow() - created_at > timedelta(seconds=MAX_WAIT_SECONDS):
+        orders.update_status(order_id, "expired")
 
-            bot.send_message(
-                chat_id,
-                "💰 Оплата получена!\n"
-                "Начинаю астрологический расчёт ✨"
-            )
+        bot.send_message(
+            chat_id,
+            "⌛ Время ожидания оплаты истекло.\n"
+            "Пожалуйста, оформите заказ заново."
+        )
+        return
 
-            calc_queue.enqueue(
-                full_calculation,
-                order_id,
-                chat_id,
-            )
-            break
+    # ======================================================
+    # 💳 Проверяем статус YooKassa
+    # ======================================================
+    try:
+        status = yk.get_payment_status(payment_id)
+    except Exception:
+        payments_queue.enqueue_in(
+            timedelta(seconds=CHECK_DELAY_SECONDS),
+            wait_for_payment,
+            payment_id,
+            order_id,
+            chat_id,
+        )
+        return
 
-        if status in ("canceled", "refunded"):
-            orders.update_status(order_id, "failed")
+    payments.update_status(payment_id, status)
 
-            bot.send_message(
-                chat_id,
-                "❌ Платёж отменён или возвращён.\n"
-                "Если это ошибка — попробуйте ещё раз."
-            )
-            break
+    # ======================================================
+    # ✅ Платёж успешен → расчёт
+    # ======================================================
+    if status == "succeeded":
+        orders.update_status(order_id, "processing")
 
-        time.sleep(5)
+        bot.send_message(
+            chat_id,
+            "💰 Оплата получена!\n"
+            "Начинаю астрологический расчёт ✨"
+        )
+
+        calculations_queue.enqueue(
+            full_calculation,
+            order_id,
+            chat_id,
+        )
+        return
+
+    # ======================================================
+    # ❌ Платёж отменён
+    # ======================================================
+    if status in ("canceled", "refunded"):
+        orders.update_status(order_id, "failed")
+
+        bot.send_message(
+            chat_id,
+            "❌ Платёж отменён или возвращён.\n"
+            "Если это ошибка — попробуйте ещё раз."
+        )
+        return
+
+    # ======================================================
+    # 🔄 Всё ещё pending → проверим позже
+    # ======================================================
+    payments_queue.enqueue_in(
+        timedelta(seconds=CHECK_DELAY_SECONDS),
+        wait_for_payment,
+        payment_id,
+        order_id,
+        chat_id,
+    )
 
 
 # =====================================================================

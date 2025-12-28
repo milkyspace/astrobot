@@ -47,4 +47,26 @@ class PaymentFlow:
             raise PaymentGatewayError("YooKassa payment creation failed")
 
         self.payments.create_payment(order["id"], pid, amount, url)
+
+        # ОЧЕРЕДЬ ПРОВЕРКИ ОПЛАТЫ
+        import os
+        from datetime import timedelta
+        from rq import Queue
+        from redis import Redis
+        from worker.tasks import wait_for_payment
+        redis_conn = Redis(
+            host=os.getenv("REDIS_HOST"),
+            port=int(os.getenv("REDIS_PORT", 6379)),
+        )
+        payments_queue = Queue("payments", connection=redis_conn)
+        CHECK_DELAY_SECONDS = int(os.getenv("PAYMENT_CHECK_DELAY", 30))  # раз в 30 сек
+        payments_queue.enqueue_in(
+            timedelta(seconds=CHECK_DELAY_SECONDS),
+            wait_for_payment,
+            pid,
+            order["id"],
+            user.tg_id,
+        )
+        # ОЧЕРЕДЬ ПРОВЕРКИ ОПЛАТЫ
+
         return url
