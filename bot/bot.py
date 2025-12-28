@@ -10,7 +10,6 @@ from bot.handlers.menu import router as menu_router
 from bot.handlers.natal import router as natal_router
 from bot.handlers.karma import router as karma_router
 from bot.handlers.solar import router as solar_router
-from bot.handlers.payment import router as payment_router
 
 
 async def main():
@@ -32,7 +31,6 @@ async def main():
     dp.include_router(natal_router)
     dp.include_router(karma_router)
     dp.include_router(solar_router)
-    dp.include_router(payment_router)
 
     print("🤖 Bot started...")
 
