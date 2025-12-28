@@ -3,6 +3,10 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
+from datetime import date
+from bot.keyboards.calendar import calendar_keyboard
+from bot.keyboards.time import time_keyboard
+
 from bot.states.natal_states import NatalForm
 from bot.keyboards.natal import natal_confirm_keyboard, natal_pay_keyboard
 from bot.utils.validators import validate_date, validate_time
@@ -17,18 +21,64 @@ from bot.keyboards.common import back_to_main_menu
 
 router = Router()
 
+
 @router.callback_query(F.data == "action:natal:start")
 async def natal_start(callback: CallbackQuery, state: FSMContext):
+    today = date.today()
+
     await state.clear()
     await state.set_state(NatalForm.birth_date)
 
     msg = await callback.message.edit_text(
-        "Введите дату рождения (ДД.ММ.ГГГГ):",
-        reply_markup=back_to_main_menu()
+        "Выберите дату рождения:",
+        reply_markup=calendar_keyboard(today.year, today.month)
     )
 
     await state.update_data(ui_message_id=msg.message_id)
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("cal:day:"))
+async def calendar_day(callback: CallbackQuery, state: FSMContext):
+    _, _, y, m, d = callback.data.split(":")
+    birth_date = f"{d.zfill(2)}.{m.zfill(2)}.{y}"
+
+    data = await state.get_data()
+    ui_message_id = data["ui_message_id"]
+
+    await state.update_data(birth_date=birth_date)
+    await state.set_state(NatalForm.birth_time)
+
+    await callback.message.bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=ui_message_id,
+        text=f"Дата выбрана: {birth_date}\n\nВыберите время рождения:",
+        reply_markup=time_keyboard()
+    )
+
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("time:"))
+async def pick_time(callback: CallbackQuery, state: FSMContext):
+    _, h, m = callback.data.split(":")
+    birth_time = f"{h}:{m}"
+
+    data = await state.get_data()
+    ui_message_id = data["ui_message_id"]
+
+    await state.update_data(birth_time=birth_time)
+    await state.set_state(NatalForm.birth_city)
+
+    await callback.message.bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=ui_message_id,
+        text=f"Дата: {data['birth_date']}\nВремя: {birth_time}\n\nВведите город рождения:",
+        reply_markup=back_to_main_menu()
+    )
+
+    await callback.answer()
+
 
 @router.message(NatalForm.birth_date)
 async def natal_birth_date(message: Message, state: FSMContext):
@@ -51,6 +101,7 @@ async def natal_birth_date(message: Message, state: FSMContext):
 
     await message.delete()
 
+
 @router.message(NatalForm.birth_time)
 async def natal_birth_time(message: Message, state: FSMContext):
     if not validate_time(message.text):
@@ -71,6 +122,7 @@ async def natal_birth_time(message: Message, state: FSMContext):
     )
 
     await message.delete()
+
 
 @router.message(NatalForm.birth_city)
 async def natal_birth_city(message: Message, state: FSMContext):
@@ -98,6 +150,7 @@ async def natal_birth_city(message: Message, state: FSMContext):
 
     await message.delete()
 
+
 @router.callback_query(F.data == "natal:confirm:edit")
 async def natal_edit(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -113,6 +166,7 @@ async def natal_edit(callback: CallbackQuery, state: FSMContext):
     )
 
     await callback.answer()
+
 
 @router.callback_query(F.data == "natal:confirm:yes")
 async def natal_confirm(callback: CallbackQuery, state: FSMContext):
