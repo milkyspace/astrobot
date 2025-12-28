@@ -50,6 +50,8 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     # ======================================================
     # 🛡️ ADMIN MODE — сразу считаем платёж успешным
     # ======================================================
+    print(chat_id)
+    print(settings.ADMIN_TG_IDS)
     if chat_id in settings.ADMIN_TG_IDS:
         orders.update_status(order_id, "processing")
 
