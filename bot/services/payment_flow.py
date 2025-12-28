@@ -49,8 +49,21 @@ class PaymentFlow:
         self.payments.create_payment(order["id"], pid, amount, url)
 
         # ОЧЕРЕДЬ ПРОВЕРКИ ОПЛАТЫ
+        import os
+        from rq import Queue
+        from redis import Redis
         from worker.tasks import wait_for_payment
-        wait_for_payment(pid, order["id"], user.tg_id,)
+        redis_conn = Redis(
+            host=os.getenv("REDIS_HOST"),
+            port=int(os.getenv("REDIS_PORT", 6379)),
+        )
+        payments_queue = Queue("payments", connection=redis_conn)
+        payments_queue.enqueue(
+            wait_for_payment,
+            pid,
+            order["id"],
+            user.tg_id,
+        )
         # ОЧЕРЕДЬ ПРОВЕРКИ ОПЛАТЫ
 
         return url
