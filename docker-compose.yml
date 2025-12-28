@@ -14,20 +14,43 @@ services:
     volumes:
       - ./:/app
 
-  worker:
+  # =====================================================
+  # PAYMENTS WORKER
+  # =====================================================
+  worker_payments:
     build:
       context: .
       dockerfile: docker/Dockerfile.worker
-    container_name: astrobot_worker
+    container_name: astrobot_worker_payments
     restart: always
     env_file: .env
     depends_on:
       - redis
       - postgres
-    command: ["python", "-m", "worker.worker"]
+    command: ["rq", "worker", "payments"]
     volumes:
       - ./:/app
 
+  # =====================================================
+  # CALCULATIONS WORKER
+  # =====================================================
+  worker_calculations:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: astrobot_worker_calculations
+    restart: always
+    env_file: .env
+    depends_on:
+      - redis
+      - postgres
+    command: ["rq", "worker", "calculations"]
+    volumes:
+      - ./:/app
+
+  # =====================================================
+  # SCHEDULER
+  # =====================================================
   scheduler:
     build:
       context: .
@@ -38,25 +61,13 @@ services:
     depends_on:
       - redis
       - postgres
-    # rq-scheduler бинарник называется rqscheduler
     command: ["rqscheduler", "--host", "redis", "--port", "6379", "--db", "0"]
     volumes:
       - ./:/app
 
-  migrations:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.migrations
-    container_name: astrobot_migrations
-    env_file: .env
-    depends_on:
-      - postgres
-    # миграции запускаем один раз, не перезапускаем контейнер
-    restart: "no"
-    command: ["python", "database/init_db.py"]
-    volumes:
-      - ./:/app
-
+  # =====================================================
+  # REDIS
+  # =====================================================
   redis:
     image: redis:7
     container_name: astrobot_redis
@@ -64,6 +75,9 @@ services:
     ports:
       - "6379:6379"
 
+  # =====================================================
+  # POSTGRES
+  # =====================================================
   postgres:
     image: postgres:15
     container_name: astrobot_postgres
@@ -76,6 +90,22 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  # =====================================================
+  # MIGRATIONS (one-shot)
+  # =====================================================
+  migrations:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.migrations
+    container_name: astrobot_migrations
+    env_file: .env
+    depends_on:
+      - postgres
+    restart: "no"
+    command: ["python", "database/init_db.py"]
+    volumes:
+      - ./:/app
 
 volumes:
   postgres_data:
