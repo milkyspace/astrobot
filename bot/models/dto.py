@@ -18,7 +18,7 @@ class OrderItemDTO(BaseModel):
 
 class OrderDTO(BaseModel):
     id: int
-    user_id: int
+    tg_id: int
     type: str
     status: str
     result: Optional[str]

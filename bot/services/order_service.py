@@ -15,17 +15,17 @@ class OrderService:
     def __init__(self, db: Db):
         self.db = db
 
-    def create_order(self, user_id: int, order_type: str) -> int:
+    def create_order(self, tg_id: int, order_type: str) -> int:
         """
         Создаёт заказ и возвращает ID.
         """
         row = self.db.fetch_one(
             """
-            INSERT INTO orders (user_id, type, status)
+            INSERT INTO orders (tg_id, type, status)
             VALUES (%s, %s, 'pending')
             RETURNING id
             """,
-            (user_id, order_type)
+            (tg_id, order_type)
         )
         return row["id"]
 
@@ -64,18 +64,18 @@ class OrderService:
             (text, order_id)
         )
 
-    def get_last_unpaid_order(self, user_id: int):
+    def get_last_unpaid_order(self, tg_id: int):
         """
         Возвращает ID последнего неоплаченного заказа.
         """
         return self.db.fetch_one(
             """
             SELECT id FROM orders
-            WHERE user_id = %s AND status = 'pending'
+            WHERE tg_id = %s AND status = 'pending'
             ORDER BY created_at DESC
             LIMIT 1
             """,
-            (user_id,)
+            (tg_id,)
         )
 
     def get_type(self, order_id: int):
