@@ -28,14 +28,32 @@ class YooKassaService:
             {
                 "amount": {
                     "value": f"{amount}.00",
-                    "currency": "RUB",
+                    "currency": "RUB"
                 },
                 "confirmation": {
                     "type": "redirect",
-                    "return_url": self.return_url,
+                    "return_url": self.return_url
                 },
                 "capture": True,
                 "description": description,
+                "receipt": {
+                    "customer": {
+                        "email": "liliatchesnokova@gmail.com",
+                    },
+                    "items": [
+                        {
+                            "description": description,
+                            "quantity": "1.00",
+                            "amount": {
+                                "value": f"{amount}.00",
+                                "currency": "RUB"
+                            },
+                            "vat_code": "1",
+                            "payment_mode": "full_payment",
+                            "payment_subject": "commodity",
+                        },
+                    ]
+                }
             },
             uuid.uuid4().hex,
         )
