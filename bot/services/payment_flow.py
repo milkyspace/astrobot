@@ -34,7 +34,7 @@ class PaymentFlow:
 
         order_type = self.orders.get_type(order["id"])
         if order_type not in settings.PRICES:
-            raise UnknownOrderTypeError(f"Unknown order type: {order_type}")
+            raise UnknownOrderTypeError(f"Unknown order type: {order_type}", order["id"], order)
 
         amount = settings.PRICES[order_type]
 
