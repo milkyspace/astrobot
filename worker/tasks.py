@@ -1,5 +1,6 @@
 import time
 import random
+import asyncio
 from aiogram import Bot
 from datetime import datetime, timedelta
 from typing import Optional
@@ -58,17 +59,18 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     if chat_id in settings.ADMIN_TG_IDS:
         orders.update_status(order_id, "processing")
 
-        bot.edit_message_text(
+        asyncio.run(bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
             text=("🛡️ Админ-режим: платёж подтверждён автоматически.")
-        )
-        bot.edit_message_text(
+        ))
+
+        asyncio.run(bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
             text=("💰 Оплата получена!\n"
             "Начинаю астрологический расчёт ✨")
-        )
+        ))
 
         calculations_queue.enqueue(
             full_calculation,
@@ -82,11 +84,11 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     # ======================================================
     if not payment_id:
         orders.update_status(order_id, "failed")
-        bot.edit_message_text(
+        asyncio.run(bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
             text=("❌ Ошибка платежа. Попробуйте позже.")
-        )
+        ))
         return
 
     # ======================================================
@@ -96,11 +98,11 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
 
     if payment is None:
         orders.update_status(order_id, "failed")
-        bot.edit_message_text(
+        asyncio.run(bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
             text=("❌ Платёж не найден.")
-        )
+        ))
         return
 
     created_at = payment["created_at"]
@@ -110,12 +112,12 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     if datetime.utcnow() - created_at > timedelta(seconds=MAX_WAIT_SECONDS):
         orders.update_status(order_id, "expired")
 
-        bot.edit_message_text(
+        asyncio.run(bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
             text=("⌛ Время ожидания оплаты истекло.\n"
             "Пожалуйста, оформите заказ заново.")
-        )
+        ))
         return
 
     # ======================================================
@@ -141,22 +143,22 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     if status == "succeeded":
         orders.update_status(order_id, "processing")
 
-        bot.edit_message_text(
+        asyncio.run(bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
             text=("💰 Оплата получена!\n"
             "Начинаю астрологический расчёт ✨")
-        )
+        ))
 
         ui_message_id = orders.get_ui_message_id(order_id)
-        bot.edit_message_text(
+        asyncio.run(bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
             text=(
                 "💰 Оплата получена!\n\n"
                 "🔮 Начинаю астрологический расчёт…"
             )
-        )
+        ))
 
         calculations_queue.enqueue(
             full_calculation,
@@ -171,12 +173,12 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
     if status in ("canceled", "refunded"):
         orders.update_status(order_id, "failed")
 
-        bot.edit_message_text(
+        asyncio.run(bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
             text=("❌ Платёж отменён или возвращён.\n"
             "Если это ошибка — попробуйте ещё раз.")
-        )
+        ))
         return
 
     # ======================================================
@@ -250,11 +252,11 @@ def full_calculation(order_id: int, chat_id: int):
     # ======================================================
     # 1. Отправляем прогресс-сообщения
     # ======================================================
-    bot.edit_message_text(
+    asyncio.run(bot.edit_message_text(
         chat_id=chat_id,
         message_id=ui_message_id,
         text="✨ Начинаю глубокий астрологический анализ..."
-    )
+    ))
 
     min_interval = int(os.getenv("PROGRESS_MIN_INTERVAL", 20))
     max_interval = int(os.getenv("PROGRESS_MAX_INTERVAL", 40))
@@ -263,11 +265,11 @@ def full_calculation(order_id: int, chat_id: int):
 
     for i in range(total_progress_messages):
         msg = random.choice(PROGRESS_MESSAGES)
-        bot.edit_message_text(
+        asyncio.run(bot.edit_message_text(
             chat_id=chat_id,
             message_id=ui_message_id,
             text=msg
-        )
+        ))
         time.sleep(random.randint(min_interval, max_interval))
 
     # ======================================================
@@ -282,11 +284,11 @@ def full_calculation(order_id: int, chat_id: int):
     # ======================================================
     # 3. GPT расчёт
     # ======================================================
-    bot.edit_message_text(
+    asyncio.run(bot.edit_message_text(
         chat_id=chat_id,
         message_id=ui_message_id,
         text="🔮 Завершаю анализ..."
-    )
+    ))
 
     result_text = gpt.generate(prompt)
 
@@ -297,13 +299,14 @@ def full_calculation(order_id: int, chat_id: int):
     # ======================================================
     # 4. Отправка результата
     # ======================================================
-    bot.edit_message_text(
+    asyncio.run(bot.edit_message_text(
         chat_id=chat_id,
         message_id=ui_message_id,
         text="✨ Ваш расчёт готов! Отправляю:"
-    )
-    bot.edit_message_text(
+    ))
+
+    asyncio.run(bot.edit_message_text(
         chat_id=chat_id,
         message_id=ui_message_id,
         text=result_text
-    )
+    ))
