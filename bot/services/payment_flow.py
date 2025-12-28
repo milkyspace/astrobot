@@ -11,6 +11,8 @@ from bot.services.exceptions import (
         PaymentGatewayError,
     )
 
+import logging
+logger = logging.getLogger(__name__)
 
 class PaymentFlow:
     def __init__(self, db: Db):
@@ -26,7 +28,7 @@ class PaymentFlow:
             last_name=tg_user.last_name
         )
 
-        print(user)
+        logger.info("User: %s", user)
         order = self.orders.get_last_unpaid_order(user.tg_id)
         if not order:
             raise OrderNotFoundError("Unpaid order not found")
