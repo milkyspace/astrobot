@@ -26,7 +26,7 @@ class PaymentFlow:
             last_name=tg_user.last_name
         )
 
-        order = self.orders.get_last_unpaid_order(user.id)
+        order = self.orders.get_last_unpaid_order(user.tg_id)
         if not order:
             raise OrderNotFoundError("Unpaid order not found")
 
