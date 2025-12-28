@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS orders (
     ui_message_id BIGINT NULL,
     ui_text TEXT NULL,
     ui_updated_at TIMESTAMP NULL,
+    ui_synced BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );

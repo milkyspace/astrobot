@@ -18,6 +18,7 @@ async def order_ui_watcher(bot: Bot):
                     message_id=order["ui_message_id"],
                     text=order["ui_text"],
                 )
+                orders.mark_ui_synced(order["id"])
             except Exception:
                 pass
 

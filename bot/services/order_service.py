@@ -119,3 +119,13 @@ class OrderService:
               AND (ui_synced IS NULL OR ui_synced = false)
             """
         )
+
+    def mark_ui_synced(self, order_id: int):
+        self.db.execute(
+            """
+            UPDATE orders
+            SET ui_synced = true
+            WHERE id = %s
+            """,
+            (order_id,)
+        )
