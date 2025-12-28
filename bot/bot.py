@@ -12,6 +12,8 @@ from bot.handlers.natal import router as natal_router
 from bot.handlers.karma import router as karma_router
 from bot.handlers.solar import router as solar_router
 
+from bot.ui_watcher import order_ui_watcher
+
 
 async def main():
     logging.basicConfig(level=logging.INFO)
@@ -34,6 +36,9 @@ async def main():
     dp.include_router(karma_router)
     dp.include_router(solar_router)
 
+    asyncio.create_task(order_ui_watcher(bot))
+
+    await dp.start_polling(bot)
     print("🤖 Bot started...")
 
     await dp.start_polling(bot)

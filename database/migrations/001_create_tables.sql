@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS orders (
     status VARCHAR(32) NOT NULL DEFAULT 'pending',  -- pending / paid / processing / done / failed
     result TEXT,                              -- итоговый текст от ChatGPT
     ui_message_id BIGINT NULL,
+    ui_text TEXT NULL,
+    ui_updated_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );

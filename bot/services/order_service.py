@@ -97,3 +97,25 @@ class OrderService:
             "UPDATE orders SET ui_message_id=%s WHERE id=%s",
             (message_id, order_id)
         )
+
+    def update_ui(self, order_id: int, text: str):
+        import datetime
+        self.db.execute(
+            """
+            UPDATE orders
+            SET ui_text = %s,
+                ui_updated_at = %s
+            WHERE id = %s
+            """,
+            (text, datetime.utcnow(), order_id)
+        )
+
+    def get_orders_with_pending_ui(self):
+        return self.db.fetch_all(
+            """
+            SELECT *
+            FROM orders
+            WHERE ui_text IS NOT NULL
+              AND (ui_synced IS NULL OR ui_synced = false)
+            """
+        )
