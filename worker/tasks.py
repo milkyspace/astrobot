@@ -598,17 +598,31 @@ def full_calculation(order_id: int, chat_id: int):
     def clamp(v: int, lo: int, hi: int) -> int:
         return lo if v < lo else hi if v > hi else v
 
+    MAX_GPT_SECONDS = 180  # 3 минуты
+    start_time = time.time()
+
     with ThreadPoolExecutor(max_workers=1) as executor:
         future: Future[str] = executor.submit(gpt.generate, prompt)
-
-        edit_message(chat_id, ui_message_id, "🔮 Анализ запущен…")
 
         PROGRESS_INTERVAL = 3
         last_update = 0
         pct = 3
         max_wait_pct = random.randint(92, 97)
 
-        while not future.done():
+        while True:
+            if future.done():
+                break
+
+            # ⛔ таймаут
+            if time.time() - start_time > MAX_GPT_SECONDS:
+                edit_message(
+                    chat_id,
+                    ui_message_id,
+                    "⚠️ Расчёт занял больше времени, чем ожидалось.\n"
+                    "Я корректно завершаю процесс и подготавливаю результат."
+                )
+                break
+
             now = time.time()
             if now - last_update >= PROGRESS_INTERVAL:
                 line = random.choice(PROGRESS_MESSAGES)
@@ -616,11 +630,21 @@ def full_calculation(order_id: int, chat_id: int):
                 pct = clamp(pct + step, 3, max_wait_pct)
                 edit_message(chat_id, ui_message_id, format_progress(pct, line))
                 last_update = now
+
             time.sleep(0.25)
 
-        edit_message(chat_id, ui_message_id, "🔮 Завершаю анализ…")
-
-        result_text = future.result()
+        # ⛔ ВАЖНО: теперь безопасно получаем результат
+        try:
+            result_text = future.result(timeout=5)
+        except Exception as e:
+            orders.update_status(order_id, "failed")
+            edit_message(
+                chat_id,
+                ui_message_id,
+                "❌ Произошла техническая ошибка при расчёте.\n"
+                "Пожалуйста, напишите в поддержку"
+            )
+            raise e
 
     # ======================================================
     # 💾 СОХРАНЕНИЕ
