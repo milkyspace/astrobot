@@ -304,8 +304,8 @@ def split_html(text: str, limit: int = 3500) -> list[str]:
     parts = []
     buffer = ""
 
-    for block in text.split("<br><br>"):
-        candidate = block if not buffer else buffer + "<br><br>" + block
+    for block in text.split("\n\n"):
+        candidate = block if not buffer else buffer + "\n\n" + block
 
         if len(candidate) <= limit:
             buffer = candidate
