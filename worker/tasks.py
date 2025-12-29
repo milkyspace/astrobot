@@ -262,6 +262,7 @@ def full_calculation(order_id: int, chat_id: int):
     from worker.telegram import edit_message, send_message
 
     edit_message(chat_id, ui_message_id, "✨ Ваш расчёт готов!")
+    print(result_text)
 
     chunks = split_html(result_text)
     for i, chunk in enumerate(chunks):
