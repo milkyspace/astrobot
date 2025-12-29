@@ -1,3 +1,5 @@
+from typing import Optional, Dict, Any
+
 import requests
 import os
 
@@ -18,15 +20,24 @@ def edit_message(chat_id: int, message_id: int, text: str):
         timeout=10,
     )
 
-def send_message(chat_id: int, text: str):
+def send_message(
+    chat_id: int,
+    text: str,
+    keyboard: Optional[Dict[str, Any]] = None,
+):
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+
+    if keyboard:
+        payload["reply_markup"] = keyboard
+
     r = requests.post(
         f"{BASE}/sendMessage",
-        json={
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True,
-        },
+        json=payload,
         timeout=10,
     )
 

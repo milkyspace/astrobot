@@ -15,6 +15,7 @@ from bot.services.payment_service import PaymentService
 from bot.services.gpt_service import GPTService
 from bot.services.progress_messages import PROGRESS_MESSAGES
 from bot.models.dto import OrderDTO
+from bot.keyboards.main_menu import main_menu
 
 from bot.services.yookassa_service import YooKassaService
 from worker.telegram import edit_message
@@ -299,6 +300,22 @@ def full_calculation(order_id: int, chat_id: int):
     for chunk in chunks:
         send_message(chat_id, chunk)
         time.sleep(0.3)
+
+    inline_menu = {
+        "inline_keyboard": [
+            [
+                {"text": "🔮 Натальная карта", "callback_data": "action:natal:start"},
+                {"text": "✨ Кармические задачи", "callback_data": "action:karma:start"},
+                {"text": "🌞 Соляр на 2026 год", "callback_data": "action:solar:start"},
+            ],
+        ]
+    }
+    send_message(
+        chat_id,
+        "✨ Я ваш персональный астрологический помощник.\n"
+        "Выберите услугу, которую хотите рассчитать:",
+        inline_menu
+    )
 
 def split_html(text: str, limit: int = 3500) -> list[str]:
     parts = []
