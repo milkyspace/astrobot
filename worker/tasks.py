@@ -236,7 +236,7 @@ def full_calculation(order_id: int, chat_id: int):
     with ThreadPoolExecutor(max_workers=1) as executor:
         future: Future[str] = executor.submit(gpt.generate, prompt)
 
-        progress_steps = random.randint(3, 5)
+        progress_steps = random.randint(15, 20)
 
         for _ in range(progress_steps):
             if future.done():
