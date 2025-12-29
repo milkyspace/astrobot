@@ -163,83 +163,75 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
 # =====================================================================
 
 def full_calculation(order_id: int, chat_id: int):
-    """
-    Полная обработка заказа:
-    - шлём прогресс шаги
-    - ждём случайную задержку
-    - вызываем GPT
-    - отправляем результат
-    """
-
     db = Db()
     orders = OrderService(db)
     gpt = GPTService()
 
     ui_message_id = orders.get_ui_message_id(order_id)
 
-    # достаём данные заказа
-    order_row = db.fetch_one("SELECT * FROM orders WHERE id=%s", (order_id,))
+    order_row = db.fetch_one(
+        "SELECT * FROM orders WHERE id=%s",
+        (order_id,)
+    )
     order = OrderDTO(**order_row)
 
-    item = db.fetch_one("SELECT * FROM order_items WHERE order_id=%s", (order_id,))
+    item = db.fetch_one(
+        "SELECT * FROM order_items WHERE order_id=%s",
+        (order_id,)
+    )
 
     birth_date = item["birth_date"]
     birth_time = item["birth_time"]
     birth_city = item["birth_city"]
-
     extra = item["extra_data"]
 
-    # ======================================================
-    # Выбираем промпт
-    # ======================================================
-    prompt = ""
     if order.type == "natal":
         prompt = (
             "Представь, что ты — профессиональный астролог мирового уровня...\n"
             f"Вот мои данные: {birth_date}, {birth_time}, {birth_city}."
         )
-
     elif order.type == "karma":
         prompt = (
-            "Представь, что ты — астролог мирового уровня, эксперт по кармической астрологии...\n"
+            "Представь, что ты — астролог мирового уровня...\n"
             f"Вот мои данные: {birth_date}, {birth_time}, {birth_city}."
         )
-
-    elif order.type == "solar":
+    else:
         living_city = extra.get("living_city")
         prompt = (
-            "Ты — профессиональный астролог мирового уровня.\n"
-            "Проанализируй мой соляр на 2026 год.\n"
-            f"Дата рождения: {birth_date}, время: {birth_time}, город рождения: {birth_city}, "
-            f"город проживания: {living_city}."
+            "Ты — профессиональный астролог...\n"
+            f"{birth_date}, {birth_time}, {birth_city}, {living_city}."
         )
 
-    # ======================================================
-    # 1. Отправляем прогресс-сообщения
-    # ======================================================
     edit_message(chat_id, ui_message_id, "✨ Начинаю глубокий астрологический анализ...")
 
-    total_progress_messages = random.randint(3, 5)
-    for i in range(total_progress_messages):
-        msg = random.choice(PROGRESS_MESSAGES)
-        edit_message(chat_id, ui_message_id, msg)
+    # ======================================================
+    # 🚀 GPT В ФОНЕ
+    # ======================================================
+    from concurrent.futures import ThreadPoolExecutor, Future
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future: Future[str] = executor.submit(gpt.generate, prompt)
 
-        time.sleep(2)
+        progress_steps = random.randint(3, 5)
+
+        for _ in range(progress_steps):
+            if future.done():
+                break
+
+            msg = random.choice(PROGRESS_MESSAGES)
+            edit_message(chat_id, ui_message_id, msg)
+            time.sleep(2)
+
+        edit_message(chat_id, ui_message_id, "🔮 Завершаю анализ...")
+
+        # ⏳ ждём GPT, если ещё не готов
+        result_text = future.result()
 
     # ======================================================
-    # 2. GPT расчёт
+    # 💾 СОХРАНЕНИЕ
     # ======================================================
-    edit_message(chat_id, ui_message_id, "🔮 Завершаю анализ...")
-
-    result_text = gpt.generate(prompt)
-
-    # сохраняем результат
     orders.save_result(order_id, result_text)
     orders.update_status(order_id, "done")
 
-    # ======================================================
-    # 3. Отправка результата
-    # ======================================================
     edit_message(chat_id, ui_message_id, "✨ Ваш расчёт готов! Отправляю:")
     edit_message(chat_id, ui_message_id, result_text)
 
