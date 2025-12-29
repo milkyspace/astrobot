@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, Dict
-
+import datetime
 
 class UserDTO(BaseModel):
     id: int
@@ -31,3 +31,4 @@ class PaymentDTO(BaseModel):
     amount: int
     status: str
     url: str
+    created_at: datetime

@@ -47,7 +47,7 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
         orders.update_ui(order_id, "❌ Платёж не найден.")
         return
 
-    created_at = payment["created_at"]
+    created_at = payment.created_at
     if datetime.utcnow() - created_at > timedelta(seconds=TIMEOUT):
         orders.update_status(order_id, "expired")
         orders.update_ui(
