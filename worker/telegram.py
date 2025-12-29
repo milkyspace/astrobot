@@ -19,7 +19,7 @@ def edit_message(chat_id: int, message_id: int, text: str):
     )
 
 def send_message(chat_id: int, text: str):
-    requests.post(
+    r = requests.post(
         f"{BASE}/sendMessage",
         json={
             "chat_id": chat_id,
@@ -29,3 +29,6 @@ def send_message(chat_id: int, text: str):
         },
         timeout=10,
     )
+
+    if not r.ok:
+        print("TG ERROR:", r.status_code, r.text)

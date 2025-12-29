@@ -267,14 +267,12 @@ def full_calculation(order_id: int, chat_id: int):
     from worker.telegram import edit_message, send_message
 
     edit_message(chat_id, ui_message_id, "✨ Ваш расчёт готов!")
-    print(result_text)
 
-    chunks = split_html(result_text)
-    for i, chunk in enumerate(chunks):
-        if i == 0:
-            send_message(chat_id, chunk)
-        else:
-            send_message(chat_id, chunk)
+    chunks = split_html(sanitize_html(result_text))
+
+    for chunk in chunks:
+        send_message(chat_id, chunk)
+        time.sleep(0.3)
 
 def split_html(text: str, limit: int = 3500) -> list[str]:
     parts = []
@@ -296,7 +294,6 @@ def split_html(text: str, limit: int = 3500) -> list[str]:
     return parts
 
 def sanitize_html(text: str) -> str:
-    forbidden = ["<ul", "<li", "<div", "<span", "<style"]
-    for tag in forbidden:
-        text = text.replace(tag, "&lt;" + tag[1:])
+    text = text.replace("&", "&amp;")
+    text = text.replace("<br/>", "<br>")
     return text
