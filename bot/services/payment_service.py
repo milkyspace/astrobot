@@ -20,7 +20,7 @@ class PaymentService:
             """
             INSERT INTO payments (order_id, yookassa_id, amount, url, status)
             VALUES (%s, %s, %s, %s, 'pending')
-            RETURNING id, order_id, yookassa_id, amount, url, status
+            RETURNING id, order_id, yookassa_id, amount, url, status, created_at
             """,
             (order_id, yookassa_id, amount, url)
         )
