@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from typing import Optional, Dict
-import datetime
 
 class UserDTO(BaseModel):
     id: int
@@ -24,6 +23,7 @@ class OrderDTO(BaseModel):
     result: Optional[str]
 
 
+from datetime import datetime
 class PaymentDTO(BaseModel):
     id: int
     order_id: int

@@ -1,4 +1,5 @@
-from typing import Optional
+from datetime import datetime
+from typing import Optional, Union
 from bot.services.db import Db
 
 from bot.models.dto import PaymentDTO
@@ -37,4 +38,29 @@ class PaymentService:
             "SELECT * FROM payments WHERE yookassa_id=%s",
             (yookassa_id,)
         )
-        return PaymentDTO(**payment) if payment else None
+
+        if not payment:
+            return None
+
+        return PaymentDTO(
+            id=payment["id"],
+            order_id=payment["order_id"],
+            yookassa_id=payment["yookassa_id"],
+            amount=payment["amount"],
+            status=payment["status"],
+            url=payment["url"],
+            created_at=to_datetime(payment["created_at"]),
+        )
+
+
+def to_datetime(value: Union[datetime, str, None]) -> Optional[datetime]:
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        return value
+
+    if isinstance(value, str):
+        return datetime.fromisoformat(value)
+
+    raise TypeError(f"Unsupported datetime type: {type(value)}")
