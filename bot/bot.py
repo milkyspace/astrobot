@@ -14,6 +14,13 @@ from bot.handlers.solar import router as solar_router
 
 from bot.ui_watcher import order_ui_watcher
 
+from aiogram.types import BotCommand
+BOT_COMMANDS = [
+    BotCommand(command="start", description="📋 Главное меню"),
+]
+
+async def setup_commands(bot):
+    await bot.set_my_commands(BOT_COMMANDS)
 
 async def main():
     logging.basicConfig(level=logging.INFO)
@@ -35,6 +42,9 @@ async def main():
     dp.include_router(natal_router)
     dp.include_router(karma_router)
     dp.include_router(solar_router)
+
+    # 🔹 регистрируем команды
+    await setup_commands(bot)
 
     asyncio.create_task(order_ui_watcher(bot))
 
