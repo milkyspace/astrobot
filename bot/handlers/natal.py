@@ -83,6 +83,7 @@ async def natal_birth_city(message: Message, state: FSMContext):
     data = await state.get_data()
 
     text = (
+        "Рассчёт натальной карты\n\n"
         "Проверьте данные:\n\n"
         f"📅 {data['birth_date']}\n"
         f"⏰ {data['birth_time']}\n"
