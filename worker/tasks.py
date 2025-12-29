@@ -303,9 +303,15 @@ def full_calculation(order_id: int, chat_id: int):
 
     inline_menu = {
         "inline_keyboard": [
-            {"text": "🔮 Натальная карта", "callback_data": "action:natal:start"},
-            {"text": "✨ Кармические задачи", "callback_data": "action:karma:start"},
-            {"text": "🌞 Соляр на 2026 год", "callback_data": "action:solar:start"},
+            [
+                {"text": "🔮 Натальная карта", "callback_data": "action:natal:start"},
+            ],
+            [
+                {"text": "✨ Кармические задачи", "callback_data": "action:karma:start"},
+            ],
+            [
+                {"text": "🌞 Соляр на 2026 год", "callback_data": "action:solar:start"},
+            ],
         ]
     }
     send_message(
