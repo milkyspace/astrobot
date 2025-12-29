@@ -257,8 +257,35 @@ def full_calculation(order_id: int, chat_id: int):
     orders.save_result(order_id, result_text)
     orders.update_status(order_id, "done")
 
-    edit_message(chat_id, ui_message_id, "✨ Ваш расчёт готов! Отправляю:")
-    edit_message(chat_id, ui_message_id, sanitize_html(result_text))
+    from worker.telegram import edit_message, send_message
+
+    edit_message(chat_id, ui_message_id, "✨ Ваш расчёт готов!")
+
+    chunks = split_html(result_text)
+    for i, chunk in enumerate(chunks):
+        if i == 0:
+            send_message(chat_id, chunk)
+        else:
+            send_message(chat_id, chunk)
+
+def split_html(text: str, limit: int = 3500) -> list[str]:
+    parts = []
+    buffer = ""
+
+    for block in text.split("<br><br>"):
+        candidate = block if not buffer else buffer + "<br><br>" + block
+
+        if len(candidate) <= limit:
+            buffer = candidate
+        else:
+            if buffer:
+                parts.append(buffer)
+            buffer = block
+
+    if buffer:
+        parts.append(buffer)
+
+    return parts
 
 def sanitize_html(text: str) -> str:
     forbidden = ["<ul", "<li", "<div", "<span", "<style"]

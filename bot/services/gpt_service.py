@@ -19,9 +19,20 @@ class GPTService:
                         {
                             "type": "input_text",
                             "text": (
-                                "Ты — генератор ЗАВЕРШЁННЫХ астрологических отчётов.\n"
-                                "Ты НИКОГДА не задаёшь вопросов и не предлагаешь продолжить.\n"
-                                "Ты ВСЕГДА выдаёшь финальный отчёт."
+                                "Ты — генератор ЗАВЕРШЁННЫХ астрологических отчётов.\n\n"
+                                "СТРОГИЕ ПРАВИЛА:\n"
+                                "- НЕ задавай вопросов\n"
+                                "- НЕ проси подтверждений\n"
+                                "- НЕ предлагай продолжить диалог\n"
+                                "- НЕ упоминай дополнительные услуги\n"
+                                "- НЕ используй фразы: "
+                                "'если хотите', 'могу', 'предлагаю', "
+                                "'скажите', 'подтвердите', 'выберите'\n\n"
+                                "ФОРМАТ:\n"
+                                "- Финальный готовый отчёт\n"
+                                "- Утверждения и рекомендации\n"
+                                "- Никакого диалога\n"
+                                "- Без обращений к читателю\n"
                             ),
                         }
                     ],
@@ -38,26 +49,11 @@ class GPTService:
             ],
         )
 
-        result = self._extract_text(response).strip()
+        result = (response.output_text or "").strip()
 
         if not result:
-            print("DEBUG RESPONSE:", response)
+            print("EMPTY GPT OUTPUT")
+            print(response)
             raise RuntimeError("OpenAI returned empty output")
 
         return result
-
-    def _extract_text(self, response) -> str:
-        parts: list[str] = []
-
-        for item in response.output:
-            content = getattr(item, "content", None)
-            if not content:
-                continue
-
-            for block in content:
-                if getattr(block, "type", None) == "output_text":
-                    text = getattr(block, "text", None)
-                    if text:
-                        parts.append(text)
-
-        return "\n".join(parts)
