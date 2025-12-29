@@ -191,6 +191,7 @@ def full_calculation(order_id: int, chat_id: int):
     prompt_html = f"ВАЖНО:\n"
     f"Ты ОБЯЗАН вернуть результат СТРОГО в HTML для Telegram.)\n"
     f"Правила:\n"
+    f"- Делай отчет красивым\n"
     f"- Используй только теги: <b>, <i>, <u>, <code>, <pre>, <a>\n"
     f"- Переносы строк делай через \"\n\" \n"
     f"- НЕ используй markdown\n"
