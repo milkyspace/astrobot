@@ -12,7 +12,8 @@ async def go_to_main_menu(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
     await callback.message.edit_text(
-        "Выберите услугу:",
+        "✨ Я ваш персональный астрологический помощник.\n"
+        "Выберите услугу, которую хотите рассчитать:",
         reply_markup=main_menu()
     )
 
