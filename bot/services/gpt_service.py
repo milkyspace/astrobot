@@ -49,4 +49,17 @@ class GPTService:
             ],
         )
 
-        return response.output_text.strip()
+        return self._extract_text(response).strip()
+
+    def _extract_text(self, response) -> str:
+        parts = []
+
+        for item in response.output:
+            if not hasattr(item, "content"):
+                continue
+
+            for block in item.content:
+                if block.type == "output_text":
+                    parts.append(block.text)
+
+        return "\n".join(parts)
