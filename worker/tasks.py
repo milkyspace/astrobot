@@ -219,28 +219,15 @@ def full_calculation(order_id: int, chat_id: int):
     # ======================================================
     edit_message(chat_id, ui_message_id, "✨ Начинаю глубокий астрологический анализ...")
 
-    min_interval = int(os.getenv("PROGRESS_MIN_INTERVAL", 1))
-    max_interval = int(os.getenv("PROGRESS_MAX_INTERVAL", 2))
-
     total_progress_messages = random.randint(3, 5)
-
     for i in range(total_progress_messages):
         msg = random.choice(PROGRESS_MESSAGES)
         edit_message(chat_id, ui_message_id, msg)
 
-        time.sleep(random.randint(min_interval, max_interval))
+        time.sleep(2)
 
     # ======================================================
-    # 2. Основная задержка (создание «ценности»)
-    # ======================================================
-    delay_min = int(os.getenv("DELAY_MIN", 1))
-    delay_max = int(os.getenv("DELAY_MAX", 2))
-    delay = random.randint(delay_min, delay_max)
-
-    time.sleep(delay)
-
-    # ======================================================
-    # 3. GPT расчёт
+    # 2. GPT расчёт
     # ======================================================
     edit_message(chat_id, ui_message_id, "🔮 Завершаю анализ...")
 
@@ -251,7 +238,7 @@ def full_calculation(order_id: int, chat_id: int):
     orders.update_status(order_id, "done")
 
     # ======================================================
-    # 4. Отправка результата
+    # 3. Отправка результата
     # ======================================================
     edit_message(chat_id, ui_message_id, "✨ Ваш расчёт готов! Отправляю:")
     edit_message(chat_id, ui_message_id, result_text)
