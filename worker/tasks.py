@@ -163,6 +163,8 @@ def wait_for_payment(payment_id: Optional[str], order_id: int, chat_id: int):
 # =====================================================================
 
 def full_calculation(order_id: int, chat_id: int):
+    from worker.telegram import edit_message
+
     db = Db()
     orders = OrderService(db)
     gpt = GPTService()
