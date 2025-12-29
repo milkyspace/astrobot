@@ -210,14 +210,14 @@ def full_calculation(order_id: int, chat_id: int):
         prompt = (
             "Представь, что ты — профессиональный астролог мирового уровня...\n"
             f"Вот мои данные: дата рождения {birth_date}, время рождения {birth_time}, город рождения {birth_city}.\n"
-            f"Создай полную натальную карту.\n"
+            f"Создай полную натальную карту. Нужно описать все, что можно. Как можно больше информации. Расскажи всё.\n"
             f"{prompt_end}"
         )
     elif order.type == "karma":
         prompt = (
             "Представь, что ты — астролог мирового уровня...\n"
             f"Вот мои данные: дата рождения {birth_date}, время рождения {birth_time}, город рождения {birth_city}.\n"
-            f"Создай отчет по моим кармическим задачам"
+            f"Создай отчет по моим кармическим задачам. Нужно описать все, что можно. Как можно больше информации. Расскажи всё."
             f"{prompt_end}"
         )
     else:
@@ -225,7 +225,7 @@ def full_calculation(order_id: int, chat_id: int):
         prompt = (
             "Ты — профессиональный астролог...\n"
             f"дата рождения {birth_date}, время рождения {birth_time}, город рождения {birth_city}, город проживания {living_city}.\n"
-            f"Создай полный соляр на 2026 год"
+            f"Создай полный соляр на 2026 год. Нужно описать все, что можно. Как можно больше информации. Расскажи всё."
             f"{prompt_end}"
         )
 
@@ -236,6 +236,12 @@ def full_calculation(order_id: int, chat_id: int):
     # ======================================================
     from concurrent.futures import ThreadPoolExecutor, Future
 
+    def format_progress(pct: int, line: str) -> str:
+        return f"<b>🔮 Выполняю расчёт</b>\n{line}\n\n<b>Готово:</b> {pct}%"
+
+    def clamp(v: int, lo: int, hi: int) -> int:
+        return lo if v < lo else hi if v > hi else v
+
     with ThreadPoolExecutor(max_workers=1) as executor:
         future: Future[str] = executor.submit(gpt.generate, prompt)
 
@@ -243,16 +249,18 @@ def full_calculation(order_id: int, chat_id: int):
 
         PROGRESS_INTERVAL = 3
         last_update = 0
+        pct = 3
+        max_wait_pct = random.randint(92, 97)
 
         while not future.done():
             now = time.time()
-
             if now - last_update >= PROGRESS_INTERVAL:
-                msg = random.choice(PROGRESS_MESSAGES)
-                edit_message(chat_id, ui_message_id, msg)
+                line = random.choice(PROGRESS_MESSAGES)
+                step = random.randint(1, 3)
+                pct = clamp(pct + step, 3, max_wait_pct)
+                edit_message(chat_id, ui_message_id, format_progress(pct, line))
                 last_update = now
-
-            time.sleep(0.5)
+            time.sleep(0.25)
 
         edit_message(chat_id, ui_message_id, "🔮 Завершаю анализ…")
 
@@ -266,7 +274,25 @@ def full_calculation(order_id: int, chat_id: int):
 
     from worker.telegram import edit_message, send_message
 
-    edit_message(chat_id, ui_message_id, "✨ Ваш расчёт готов!")
+    edit_message(
+        chat_id,
+        ui_message_id,
+        "🔮 Анализ завершён.\n\n"
+        "Сейчас я аккуратно собираю выводы,\n"
+        "сопоставляю влияния и формирую рекомендации.\n\n"
+        "Пожалуйста, подождите несколько секунд."
+    )
+
+    time.sleep(3)
+
+    edit_message(
+        chat_id,
+        ui_message_id,
+        "✨ Финальные штрихи…\n"
+        "Отчёт почти готов."
+    )
+
+    time.sleep(2)
 
     chunks = split_html(sanitize_html(result_text))
 
