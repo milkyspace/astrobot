@@ -235,22 +235,27 @@ def full_calculation(order_id: int, chat_id: int):
     # 🚀 GPT В ФОНЕ
     # ======================================================
     from concurrent.futures import ThreadPoolExecutor, Future
+
     with ThreadPoolExecutor(max_workers=1) as executor:
         future: Future[str] = executor.submit(gpt.generate, prompt)
 
-        progress_steps = random.randint(15, 20)
+        edit_message(chat_id, ui_message_id, "🔮 Анализ запущен…")
 
-        for _ in range(progress_steps):
-            if future.done():
-                break
+        PROGRESS_INTERVAL = 3
+        last_update = 0
 
-            msg = random.choice(PROGRESS_MESSAGES)
-            edit_message(chat_id, ui_message_id, msg)
-            time.sleep(2)
+        while not future.done():
+            now = time.time()
 
-        edit_message(chat_id, ui_message_id, "🔮 Завершаю анализ...")
+            if now - last_update >= PROGRESS_INTERVAL:
+                msg = random.choice(PROGRESS_MESSAGES)
+                edit_message(chat_id, ui_message_id, msg)
+                last_update = now
 
-        # ⏳ ждём GPT, если ещё не готов
+            time.sleep(0.5)
+
+        edit_message(chat_id, ui_message_id, "🔮 Завершаю анализ…")
+
         result_text = future.result()
 
     # ======================================================
